@@ -47,6 +47,8 @@ class _ConfiguracionRutaScreenState
 
   bool loading = true;
 
+  WorkflowModel? workflow;
+
   @override
   void initState() {
 
@@ -125,6 +127,40 @@ async {
 
   print("ID UBICACION:");
   print(idUbicacion);
+  workflow =
+    await WorkflowManager.instance
+        .obtenerOperacion();
+
+if (!mounted) return;
+
+if (workflow != null) {
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+
+    switch (workflow!.estadoOperacion) {
+
+      case OperationState.econ:
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const EconScreen(),
+          ),
+        );
+
+        break;
+
+      
+
+      default:
+        break;
+    }
+
+  });
+
+  return;
+}
+        
 
   //=========================
   // OPERACION ACTIVA
