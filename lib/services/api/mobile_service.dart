@@ -280,5 +280,97 @@ print(response.data);
 
 }
 
+//----------------------------------------------------------
+// REGISTRAR MOVIMIENTO DE ENVÍO
+//
+// Envía un movimiento previamente creado en la cola local
+// hacia PCC API.
+//
+// El uuid_sincronizacion permite identificar el evento
+// durante reintentos de sincronización.
+//----------------------------------------------------------
+
+  Future<void> registrarMovimiento({
+
+    required String token,
+
+    required Map<String, dynamic> movimiento,
+
+  }) async {
+
+    final response =
+        await dio.post(
+
+      '${AppConstants.apiUrl}/api/movimientos',
+
+      data: {
+
+        'id_envio':
+            movimiento['id_envio'],
+
+        'id_estado':
+            movimiento['id_estado'],
+
+        'descripcion':
+            movimiento['descripcion'],
+
+        'id_ubicacion':
+            movimiento['id_ubicacion'],
+
+        'id_empleado':
+            movimiento['id_empleado'],
+
+        'id_ruta':
+            movimiento['id_ruta'],
+
+        'latitud':
+            movimiento['latitud'],
+
+        'longitud':
+            movimiento['longitud'],
+
+        'dispositivo':
+            movimiento['dispositivo'],
+
+        'uuid_sincronizacion':
+            movimiento['uuid_sincronizacion'],
+
+        'fecha_evento':
+            movimiento['fecha_evento'],
+
+      },
+
+      options: Options(
+
+        headers: {
+
+          'Authorization':
+              'Bearer $token',
+
+        },
+
+      ),
+
+    );
+
+    dynamic data =
+        response.data;
+
+    if (data is String) {
+      data = jsonDecode(data);
+    }
+
+    if (
+        data is Map &&
+        data['success'] == false
+    ) {
+      throw Exception(
+        data['error'] ??
+        'Error registrando movimiento',
+      );
+    }
+
+  }
+
 
 }

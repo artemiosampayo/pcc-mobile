@@ -42,7 +42,9 @@ class DatabaseTables {
     await db.execute(
       createEnviosTable(),
     );
-
+    await db.execute(
+      createMovimientosTable(),
+    );
   }
 
   //============================================================
@@ -97,6 +99,7 @@ class DatabaseTables {
     ''';
 
   }
+  
 
   //============================================================
   // TABLA
@@ -181,5 +184,66 @@ class DatabaseTables {
     ''';
 
   }
+  //============================================================
+// TABLA
+// MOVIMIENTOS LOCALES
+//
+// Cola de eventos operativos pendientes de sincronización.
+//
+// Cada movimiento utiliza uuid_sincronizacion para permitir
+// reintentos seguros contra PCC API.
+//============================================================
+
+static String createMovimientosTable() {
+
+  return '''
+
+  CREATE TABLE movimientos_local(
+
+    id_local INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    uuid_sincronizacion TEXT NOT NULL UNIQUE,
+
+    id_operacion INTEGER NOT NULL,
+
+    id_envio INTEGER NOT NULL,
+
+    codigo_estado TEXT NOT NULL,
+
+    id_estado INTEGER NOT NULL,
+
+    descripcion TEXT,
+
+    id_ubicacion INTEGER,
+
+    id_empleado INTEGER,
+
+    id_ruta INTEGER,
+
+    latitud REAL,
+
+    longitud REAL,
+
+    dispositivo TEXT,
+
+    fecha_evento TEXT NOT NULL,
+
+    sincronizado INTEGER DEFAULT 0,
+
+    intentos INTEGER DEFAULT 0,
+
+    ultimo_error TEXT,
+
+    UNIQUE(
+      id_operacion,
+      id_envio,
+      codigo_estado
+    )
+
+  )
+
+  ''';
+
+}
 
 }

@@ -24,6 +24,13 @@
 import 'package:flutter/material.dart';
 import '../../core/workflow/workflow_manager.dart';
 import '../../models/workflow_model.dart';
+import '../../widgets/operation_header.dart';
+import '../../services/local/envio_local_service.dart';
+import '../../services/local/movimiento_local_service.dart';
+import '../../services/local/session_local_service.dart';
+import '../../services/sync/movimiento_sync_service.dart';
+import '../../core/enums/operation_state.dart';
+import 'mi_ruta_screen.dart';
 
 class InicioRutaScreen extends StatefulWidget {
 
@@ -42,6 +49,18 @@ class _InicioRutaScreenState
       WorkflowModel? workflow;
 
       bool loading = true;
+
+      bool iniciandoRuta = false;
+
+      final EnvioLocalService envioLocalService =
+          EnvioLocalService();
+
+      final MovimientoLocalService movimientoLocalService =
+          MovimientoLocalService.instance;
+
+      final MovimientoSyncService movimientoSyncService =
+          MovimientoSyncService.instance;
+
     @override
     void initState() {
 
@@ -55,6 +74,7 @@ class _InicioRutaScreenState
   workflow =
       await WorkflowManager.instance
           .obtenerOperacion();
+
 
   if (!mounted) return;
 
@@ -78,100 +98,259 @@ class _InicioRutaScreenState
 
       ),
 
-      body:
-
-          loading
-
-          ?
-
-          const Center(
-
-            child:
-                CircularProgressIndicator(),
-
+      body: loading
+    ? const Center(
+        child: CircularProgressIndicator(),
+      )
+    : workflow == null
+        ? const Center(
+            child: Text(
+              'No existe una operación activa.',
+            ),
           )
+        : Column(
+            children: [
 
-          :
+              OperationHeader(
+                workflow: workflow!,
+              ),
 
-          Padding(
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
 
-            padding:
-                const EdgeInsets.all(20),
-
-            child:
-
-                Column(
-
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
-
-              children: [
-
-                Card(
-
-                  child: Padding(
-
-                    padding:
-                        const EdgeInsets.all(16),
-
-                    child: Column(
-
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-
-                      children: [
-
-                        Text(
-
-                          "Operación: ${workflow?.idOperacion ?? 0}",
-
-                          style: const TextStyle(
-
-                            fontWeight:
-                                FontWeight.bold,
-
+                          const Icon(
+                            Icons.local_shipping,
+                            size: 56,
                           ),
 
-                        ),
+                          const SizedBox(
+                            height: 16,
+                          ),
 
-                        const SizedBox(height: 8),
+                          const Text(
+                            'Todo listo para iniciar la ruta',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
 
-                        Text(
-                          "Ruta: ${workflow?.nombreRuta ?? ""}",
-                        ),
+                          const SizedBox(
+                            height: 12,
+                          ),
 
-                        const SizedBox(height: 8),
+                          const Text(
+                            'Confirma el inicio cuando la unidad '
+                            'esté lista para comenzar su recorrido.',
+                            textAlign: TextAlign.center,
+                          ),
 
-                        Text(
-                          "Operador: ${workflow?.nombreOperador ?? ""}",
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Text(
-                          "Unidad: ${workflow?.numeroEconomico ?? ""}",
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Text(
-                          "Contenedor: ${workflow?.contenedor ?? ""}",
-                        ),
-
-                      ],
-
+                        ],
+                      ),
                     ),
-
                   ),
-
                 ),
+              ),
 
-              ],
-
-            ),
-
+            ],
+            
           ),
+          bottomNavigationBar:
+    loading || workflow == null
+        ? null
+        : SafeArea(
+            minimum: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: FilledButton.icon(
+                onPressed: iniciandoRuta
+                    ? null
+                    : () async {
 
+                        final confirmar =
+                            await showDialog<bool>(
+                          context: context,
+                          builder: (context) {
+                            return AlertDialog(
+                              title: const Text(
+                                'Iniciar Ruta',
+                              ),
+                              content: const Text(
+                                'Al confirmar, la unidad iniciará '
+                                'formalmente su recorrido y las guías '
+                                'cambiarán al estado EN RUTA.\n\n'
+                                '¿Desea continuar?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(
+                                      context,
+                                      false,
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Cancelar',
+                                  ),
+                                ),
+                                FilledButton(
+                                  onPressed: () {
+                                    Navigator.pop(
+                                      context,
+                                      true,
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Iniciar Ruta',
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (confirmar != true) {
+                          return;
+                        }
+
+                        setState(() {
+                          iniciandoRuta = true;
+                        });
+
+                        try {
+
+                          final operacionActual = workflow;
+
+                          if (operacionActual == null) {
+                            throw Exception(
+                              'No existe una operación activa.',
+                            );
+                          }
+
+                          if (
+                              operacionActual.idOperacion == null ||
+                              operacionActual.idUbicacion == null ||
+                              operacionActual.idOperador == null ||
+                              operacionActual.idRuta == null
+                          ) {
+                            throw Exception(
+                              'La operación no contiene todos los datos requeridos.',
+                            );
+                          }
+
+                          final envios =
+                              await envioLocalService
+                                  .obtenerEnvios();
+
+                          if (envios.isEmpty) {
+                            throw Exception(
+                              'El manifiesto de la ruta no contiene guías.',
+                            );
+                          }
+
+                          final movimientosCreados =
+                              await movimientoLocalService
+                                  .crearLoteEnRuta(
+                            idOperacion:
+                                operacionActual.idOperacion!,
+                            envios:
+                                envios,
+                            idUbicacion:
+                                operacionActual.idUbicacion!,
+                            idEmpleado:
+                                operacionActual.idOperador!,
+                            idRuta:
+                                operacionActual.idRuta!,
+                          );
+
+                          final session =
+                              await SessionLocalService.instance
+                                  .obtenerSesion();
+
+                          if (session == null) {
+                            throw Exception(
+                              'No existe una sesión activa para sincronizar.',
+                            );
+                          }
+
+                          final resultadoSync =
+                              await movimientoSyncService
+                                  .sincronizarPendientes(
+                            token: session.token,
+                          );
+
+                          debugPrint(
+                            'EN_RUTA - Movimientos locales creados: '
+                            '$movimientosCreados',
+                          );
+
+                          debugPrint(
+                            'EN_RUTA - Sincronización: '
+                            '${resultadoSync.sincronizados}/'
+                            '${resultadoSync.total}. '
+                            'Errores: ${resultadoSync.errores}',
+                          );
+
+                          if (resultadoSync.errores > 0) {
+                            throw Exception(
+                              'No fue posible sincronizar todos los movimientos EN_RUTA.',
+                            );
+                          }
+
+                          await WorkflowManager.instance
+                              .cambiarEstado(
+                            OperationState.enRuta,
+                          );
+
+                          if (!mounted) {
+                            return;
+                          }
+
+                          Navigator.of(context).pushReplacement(
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const MiRutaScreen(),
+                            ),
+                          );
+
+                        } catch (e) {
+
+                          if (!mounted) return;
+
+                          setState(() {
+                            iniciandoRuta = false;
+                          });
+
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'No fue posible iniciar la ruta: $e',
+                              ),
+                            ),
+                          );
+
+                        }
+
+                      },
+                icon: const Icon(
+                  Icons.play_arrow,
+                ),
+                label: const Text(
+                  'INICIAR RUTA',
+                ),
+              ),
+            ),
+          ),
     );
 
   }

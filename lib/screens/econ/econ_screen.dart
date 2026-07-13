@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
 import '../scanner/barcode_scanner_screen.dart';
 import '../../services/local/envio_local_service.dart';
+import '../../services/device/device_feedback_service.dart';
+import '../../core/workflow/workflow_manager.dart';
+import '../../models/workflow_model.dart';
+import '../../widgets/operation_header.dart';
+import '../../services/api/mobile_service.dart';
+import '../../services/local/session_local_service.dart';
+import '../../core/enums/operation_state.dart';
+import '../ruta/inicio_ruta_screen.dart';
+import '../../services/local/movimiento_local_service.dart';
+import '../../services/sync/movimiento_sync_service.dart';
 
 class EconScreen extends StatefulWidget {
 
@@ -17,8 +27,21 @@ class EconScreen extends StatefulWidget {
 class _EconScreenState
     extends State<EconScreen> {
 
+  final MobileService mobileService =
+    MobileService();
+
   final EnvioLocalService service =
       EnvioLocalService();
+
+  final MovimientoLocalService movimientoService =
+    MovimientoLocalService.instance;
+
+  final MovimientoSyncService movimientoSyncService =
+    MovimientoSyncService.instance;
+
+  bool confirmandoEcon = false;
+
+  WorkflowModel? workflow;
 
   List<Map<String,dynamic>>
       envios = [];
@@ -40,27 +63,85 @@ class _EconScreenState
 
   }
 
-  Future<void> cargar() async {
+Future<void> cargar() async {
 
-    envios = await service.obtenerEnvios();
+  workflow =
+      await WorkflowManager.instance
+          .obtenerOperacion();
 
-    totalEscaneadas =
-        envios.where(
-          (e) => e['escaneada'] == 1,
-        ).length;
+  final session =
+      await SessionLocalService.instance
+          .obtenerSesion();
 
-    totalPendientes =
-        envios.length - totalEscaneadas;
+  // Estos pueden ir aquí.
+  print('=================================');
+  print('ECON - CARGAR INICIADO');
+  print('ECON - WORKFLOW EXISTE: ${workflow != null}');
+  print('ECON - ID UBICACIÓN WORKFLOW: ${workflow?.idUbicacion}');
+  print('ECON - SESIÓN EXISTE: ${session != null}');
+  print('ECON - ID UBICACIÓN SESIÓN: ${session?.idUbicacion}');
+  print('=================================');
 
-    if (!mounted) return;
+  if (
+      session != null &&
+      workflow?.idUbicacion != null
+  ) {
 
-    setState(() {
+    try {
 
-      loading = false;
+      final guiasServidor =
+          await mobileService
+              .obtenerGuiasRecepcionadas(
+        session.token,
+        workflow!.idUbicacion!,
+      );
 
-    });
+      // Estos deben quedarse aquí porque
+      // guiasServidor solamente existe dentro del try.
+      print('ECON - GUÍAS RECIBIDAS API: ${guiasServidor.length}');
+      print('ECON - GUÍAS API: $guiasServidor');
+
+      final nuevasGuias =
+          await service
+              .sincronizarNuevasGuias(
+        guiasServidor,
+      );
+
+      print(
+        'ECON - NUEVAS GUÍAS INSERTADAS SQLITE: '
+        '$nuevasGuias',
+      );
+
+    } catch (e) {
+
+      print(
+        'ECON - No fue posible actualizar '
+        'las guías: $e',
+      );
+
+    }
 
   }
+
+  envios =
+      await service.obtenerEnvios();
+
+  totalEscaneadas =
+      envios.where(
+        (e) => e['escaneada'] == 1,
+      ).length;
+
+  totalPendientes =
+      envios.length -
+      totalEscaneadas;
+
+  if (!mounted) return;
+
+  setState(() {
+    loading = false;
+  });
+
+}
   Future<void> escanearGuia() async {
 
   if (procesandoEscaneo) {
@@ -96,6 +177,8 @@ class _EconScreenState
 
   if (envio == null) {
 
+    await DeviceFeedbackService.instance.scanError();
+
     if (!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -115,6 +198,8 @@ class _EconScreenState
   }
 
   if (envio['escaneada'] == 1) {
+
+    await DeviceFeedbackService.instance.scanDuplicate();
 
     if (!mounted) return;
 
@@ -137,6 +222,7 @@ class _EconScreenState
   await service.marcarEscaneada(
     envio['id_envio'],
   );
+  await DeviceFeedbackService.instance.scanSuccess();
 
   await cargar();
 
@@ -144,6 +230,12 @@ class _EconScreenState
 
   @override
   Widget build(BuildContext context) {
+    final enviosEscaneados =
+    envios
+        .where(
+          (e) => e['escaneada'] == 1,
+        )
+        .toList();
 
     return Scaffold(
 
@@ -196,7 +288,10 @@ class _EconScreenState
 
         children: [
 
-         
+          if (workflow != null) 
+          OperationHeader(
+            workflow: workflow!,
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Card(
@@ -204,33 +299,11 @@ class _EconScreenState
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
+                  
                   children: [
 
                     Row(
                       children: [
-
-                        Expanded(
-                          child: Column(
-                            children: [
-
-                              const Text(
-                                "TOTAL",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                              Text(
-                                envios.length.toString(),
-                                style: const TextStyle(
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-
-                            ],
-                          ),
-                        ),
 
                         Expanded(
                           child: Column(
@@ -263,18 +336,7 @@ class _EconScreenState
 
                     const SizedBox(height: 16),
 
-                    LinearProgressIndicator(
-
-                      value: envios.isEmpty
-                          ? 0
-                          : totalEscaneadas / envios.length,
-
-                      minHeight: 10,
-
-                      borderRadius:
-                          BorderRadius.circular(10),
-
-                    ),
+                    
 
                   ],
                 ),
@@ -288,14 +350,14 @@ class _EconScreenState
             ListView.builder(
 
               itemCount:
-                  envios.length,
+                 enviosEscaneados.length,
 
               itemBuilder:
 
                   (_, index) {
 
                 final e =
-                    envios[index];
+                  enviosEscaneados[index];
 
                 return Card(
 
@@ -408,7 +470,7 @@ Padding(
   child: SizedBox(
     width: double.infinity,
     child: ElevatedButton.icon(
-      onPressed: totalEscaneadas > 0
+      onPressed: totalEscaneadas > 0 && !confirmandoEcon
           ? () async {
 
               final confirmar =
@@ -456,14 +518,106 @@ Padding(
                 return;
               }
 
-              ScaffoldMessenger.of(context)
-                  .showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'ECON confirmado.',
+              try {
+
+                setState(() {
+                  confirmandoEcon = true;
+                });
+
+                final guiasEcon =
+                    envios
+                        .where(
+                          (e) => e['escaneada'] == 1,
+                        )
+                        .toList();
+
+                final operacionActual = workflow;
+
+                if (operacionActual == null) {
+                  throw Exception(
+                    'No existe una operación activa.',
+                  );
+                }
+                if (
+                    operacionActual.idOperacion == null ||
+                    operacionActual.idUbicacion == null ||
+                    operacionActual.idOperador == null ||
+                    operacionActual.idRuta == null
+                ) {
+                  throw Exception(
+                    'La operación no contiene todos los datos requeridos.',
+                  );
+                }
+
+                final movimientosCreados =
+                    await movimientoService.crearLoteEcon(
+                  idOperacion: operacionActual.idOperacion!,
+                  envios: guiasEcon,
+                  idUbicacion: operacionActual.idUbicacion!,
+                  idEmpleado: operacionActual.idOperador!,
+                  idRuta: operacionActual.idRuta!,
+                );
+
+                final session =
+                    await SessionLocalService.instance
+                        .obtenerSesion();
+
+                if (session == null) {
+                  throw Exception(
+                    'No existe una sesión activa para sincronizar.',
+                  );
+                }
+
+                final resultadoSync =
+                    await movimientoSyncService
+                        .sincronizarPendientes(
+                  token: session.token,
+                );
+
+                print(
+                  'ECON - Sincronización: '
+                  '${resultadoSync.sincronizados}/'
+                  '${resultadoSync.total}. '
+                  'Errores: ${resultadoSync.errores}',
+                );
+
+                print(
+                  'ECON - Movimientos locales creados: '
+                  '$movimientosCreados',
+                );
+
+                final guiasEliminadas =
+                    await service.eliminarGuiasNoEscaneadas();
+
+                await WorkflowManager.instance.cambiarEstado(
+                  OperationState.econConfirmado,
+                );
+
+                if (!context.mounted) return;
+
+                print(
+                  'ECON CONFIRMADO - Guías no utilizadas eliminadas: '
+                  '$guiasEliminadas',
+                );
+
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const InicioRutaScreen(),
                   ),
-                ),
-              );
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'No fue posible confirmar el ECON: $e',
+                    ),
+                  ),
+                );
+              }
 
               // Aquí en el siguiente bloque
               // cambiaremos el Workflow

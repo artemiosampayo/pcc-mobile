@@ -42,7 +42,7 @@ class DatabaseHelper {
   static const String databaseName =
       'pcc_mobile.db';
 
-  static const int databaseVersion = 4;
+  static const int databaseVersion = 5;
 
   //------------------------------------------------------------
   // Base de datos

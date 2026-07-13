@@ -6,6 +6,8 @@ import '../../core/storage/storage_service.dart';
 
 import '../configuracion_ruta/configuracion_ruta_screen.dart';
 import '../../widgets/pcc_logo.dart';
+import '../../core/authentication/authentication_manager.dart';
+import '../../models/session_model.dart';
 class LoginScreen extends StatefulWidget {
 
   const LoginScreen({
@@ -88,6 +90,18 @@ class _LoginScreenState
           data['id_ubicacion'] ?? 0,
 
     );
+    await AuthenticationManager.instance.guardarSesion(
+  SessionModel(
+    idUsuario: data['id_usuario'],
+    usuario: data['usuario'],
+    nombre: data['nombre'] ?? data['usuario'],
+    rol: data['rol'] ?? '',
+    idEmpleado: data['id_empleado'] ?? 0,
+    idUbicacion: data['id_ubicacion'] ?? 0,
+    token: data['token'],
+    fechaLogin: DateTime.now().toIso8601String(),
+  ),
+);
       if(!mounted) return;
 
       Navigator.pushReplacement(

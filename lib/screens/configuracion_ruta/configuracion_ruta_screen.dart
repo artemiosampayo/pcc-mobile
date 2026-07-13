@@ -9,6 +9,7 @@ import '../econ/econ_screen.dart';
 import '../../core/workflow/workflow_manager.dart';
 import '../../core/enums/operation_state.dart';
 import '../../models/workflow_model.dart';
+import '../ruta/inicio_ruta_screen.dart';
 
 class ConfiguracionRutaScreen
     extends StatefulWidget {
@@ -139,22 +140,36 @@ if (workflow != null) {
 
     switch (workflow!.estadoOperacion) {
 
-      case OperationState.econ:
+        case OperationState.econ:
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const EconScreen(),
-          ),
-        );
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const EconScreen(),
+            ),
+          );
 
-        break;
+          break;
 
-      
+        case OperationState.econConfirmado:
 
-      default:
-        break;
-    }
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const InicioRutaScreen(),
+            ),
+          );
+
+          break;
+
+        default:
+
+          setState(() {
+            loading = false;
+          });
+
+          break;
+      }
 
   });
 
