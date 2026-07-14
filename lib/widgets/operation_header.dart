@@ -27,12 +27,115 @@ class OperationHeader extends StatelessWidget {
   const OperationHeader({
     super.key,
     required this.workflow,
+    this.compact = false,
   });
 
   final WorkflowModel workflow;
 
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
+      if (compact) {
+        return Card(
+          margin: const EdgeInsets.fromLTRB(
+            12,
+            8,
+            12,
+            4,
+          ),
+          elevation: 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 10,
+            ),
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.person_outline,
+                      size: 18,
+                      color: Colors.orange.shade700,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            const TextSpan(
+                              text: 'Operador: ',
+                              style: TextStyle(
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+                            TextSpan(
+                              text: _displayValue(
+                                workflow.nombreOperador,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 6),
+
+                Row(
+                  children: [
+                    Icon(
+                      Icons.local_shipping_outlined,
+                      size: 18,
+                      color: Colors.orange.shade700,
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    Expanded(
+                      child: Text(
+                        _displayValue(
+                          workflow.nombreRuta,
+                        ),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 18,
+                      color: Colors.orange.shade700,
+                    ),
+
+                    const SizedBox(width: 6),
+
+                    Text(
+                      _displayValue(
+                        workflow.nombreUbicacion,
+                      ),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+
     return Card(
       margin: const EdgeInsets.fromLTRB(
         16,

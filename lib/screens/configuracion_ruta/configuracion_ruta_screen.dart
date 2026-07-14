@@ -10,6 +10,7 @@ import '../../core/workflow/workflow_manager.dart';
 import '../../core/enums/operation_state.dart';
 import '../../models/workflow_model.dart';
 import '../ruta/inicio_ruta_screen.dart';
+import '../ruta/mi_ruta_screen.dart';
 
 class ConfiguracionRutaScreen
     extends StatefulWidget {
@@ -157,6 +158,17 @@ if (workflow != null) {
             context,
             MaterialPageRoute(
               builder: (_) => const InicioRutaScreen(),
+            ),
+          );
+
+          break;
+        case OperationState.enRuta:
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  const MiRutaScreen(),
             ),
           );
 

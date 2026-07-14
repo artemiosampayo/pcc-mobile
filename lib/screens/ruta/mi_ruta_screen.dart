@@ -37,6 +37,8 @@ import '../../core/workflow/workflow_manager.dart';
 import '../../models/workflow_model.dart';
 import '../../services/local/envio_local_service.dart';
 import '../../widgets/operation_header.dart';
+import '../scanner/barcode_scanner_screen.dart';
+import '../../services/device/device_feedback_service.dart';
 
 class MiRutaScreen extends StatefulWidget {
 
@@ -69,6 +71,12 @@ class _MiRutaScreenState
   List<Map<String, dynamic>> envios = [];
 
   bool loading = true;
+
+  String filtroSeleccionado = 'TODAS';
+
+  final Set<String> guiasSeleccionadas = {};
+
+  bool procesandoEscaneo = false;
 
   //----------------------------------------------------------
   // Ciclo de vida
@@ -156,6 +164,180 @@ class _MiRutaScreenState
             'DEVOLUCION',
       ).length;
 
+
+  List<Map<String, dynamic>> get enviosFiltrados {
+
+    switch (filtroSeleccionado) {
+
+      case 'PENDIENTES':
+
+        return envios.where(
+          (envio) {
+
+            final estado =
+                envio['estatus_local']
+                    ?.toString()
+                    .toUpperCase();
+
+            return estado != 'ENTREGADA' &&
+                estado != 'DEVOLUCION';
+
+          },
+        ).toList();
+
+      case 'ENTREGAS':
+
+        return envios.where(
+          (envio) =>
+              envio['estatus_local']
+                  ?.toString()
+                  .toUpperCase() ==
+              'ENTREGADA',
+        ).toList();
+
+      case 'DEVOLUCIONES':
+
+        return envios.where(
+          (envio) =>
+              envio['estatus_local']
+                  ?.toString()
+                  .toUpperCase() ==
+              'DEVOLUCION',
+        ).toList();
+
+      default:
+
+        return envios;
+
+    }
+
+  }
+
+  //----------------------------------------------------------
+// Selección temporal de guías
+//----------------------------------------------------------
+
+  void toggleSeleccionGuia(String numeroGuia,) {
+
+    setState(() {
+
+      if (guiasSeleccionadas.contains(numeroGuia)) {
+
+        guiasSeleccionadas.remove(numeroGuia);
+
+      } else {
+
+        guiasSeleccionadas.add(numeroGuia);
+
+      }
+
+    });
+
+}
+//----------------------------------------------------------
+// Escaneo de guía para selección
+//----------------------------------------------------------
+
+Future<void> escanearGuia() async {
+
+  if (procesandoEscaneo) {
+    return;
+  }
+
+  procesandoEscaneo = true;
+
+  final codigo =
+      await Navigator.push<String>(
+    context,
+    MaterialPageRoute(
+      builder: (_) =>
+          const BarcodeScannerScreen(),
+    ),
+  );
+
+  procesandoEscaneo = false;
+
+  if (codigo == null) {
+    return;
+  }
+
+  //--------------------------------------------------------
+  // Buscar únicamente entre las guías pendientes
+  //--------------------------------------------------------
+
+  Map<String, dynamic>? envioEncontrado;
+
+  for (final envio in envios) {
+
+    final numeroGuia =
+        envio['numero_guia']
+            ?.toString();
+
+    final estado =
+        envio['estatus_local']
+            ?.toString()
+            .toUpperCase();
+
+    final esPendiente =
+        estado != 'ENTREGADA' &&
+        estado != 'DEVOLUCION';
+
+    if (
+        numeroGuia == codigo &&
+        esPendiente
+    ) {
+      envioEncontrado = envio;
+      break;
+    }
+
+  }
+
+  //--------------------------------------------------------
+  // La guía no pertenece a las pendientes de la ruta
+  //--------------------------------------------------------
+
+  if (envioEncontrado == null) {
+
+    await DeviceFeedbackService
+        .instance
+        .scanError();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      const SnackBar(
+        content: Text(
+          'La guía no pertenece a las '
+          'guías pendientes de esta ruta.',
+        ),
+      ),
+    );
+
+    return;
+
+  }
+
+  //--------------------------------------------------------
+  // Seleccionar / deseleccionar
+  //--------------------------------------------------------
+
+  final numeroGuia =
+      envioEncontrado['numero_guia']
+          .toString();
+
+  toggleSeleccionGuia(
+    numeroGuia,
+  );
+
+  await DeviceFeedbackService
+      .instance
+      .scanSuccess();
+
+}
+
   //----------------------------------------------------------
   // Build
   //----------------------------------------------------------
@@ -174,7 +356,21 @@ class _MiRutaScreenState
         ),
 
       ),
-
+      floatingActionButton:
+        filtroSeleccionado == 'PENDIENTES'
+            ? FloatingActionButton.extended(
+                onPressed:
+                    procesandoEscaneo
+                        ? null
+                        : escanearGuia,
+                icon: const Icon(
+                  Icons.qr_code_scanner,
+                ),
+                label: const Text(
+                  'ESCANEAR',
+                ),
+              )
+            : null,
       body:
           loading
               ? const Center(
@@ -196,8 +392,8 @@ class _MiRutaScreenState
                         //--------------------------------------------------
 
                         OperationHeader(
-                          workflow:
-                              workflow!,
+                          workflow: workflow!,
+                          compact: true,
                         ),
 
                         //--------------------------------------------------
@@ -218,13 +414,17 @@ class _MiRutaScreenState
                               Expanded(
                                 child:
                                     _ResumenCard(
-                                  titulo:
-                                      'Total',
-                                  valor:
-                                      totalGuias,
-                                  icono:
-                                      Icons.inventory_2,
-                                ),
+                                      titulo: 'Todas',
+                                      valor: totalGuias,
+                                      icono: Icons.inventory_2,
+                                      seleccionado:
+                                          filtroSeleccionado == 'TODAS',
+                                      onTap: () {
+                                        setState(() {
+                                          filtroSeleccionado = 'TODAS';
+                                        });
+                                      },
+                                    ),
                               ),
 
                               const SizedBox(
@@ -234,13 +434,17 @@ class _MiRutaScreenState
                               Expanded(
                                 child:
                                     _ResumenCard(
-                                  titulo:
-                                      'Pendientes',
-                                  valor:
-                                      totalPendientes,
-                                  icono:
-                                      Icons.schedule,
-                                ),
+                                      titulo: 'Pendientes',
+                                      valor: totalPendientes,
+                                      icono: Icons.schedule,
+                                      seleccionado:
+                                          filtroSeleccionado == 'PENDIENTES',
+                                      onTap: () {
+                                        setState(() {
+                                          filtroSeleccionado = 'PENDIENTES';
+                                        });
+                                      },
+                                    ),
                               ),
 
                               const SizedBox(
@@ -250,13 +454,17 @@ class _MiRutaScreenState
                               Expanded(
                                 child:
                                     _ResumenCard(
-                                  titulo:
-                                      'Entregas',
-                                  valor:
-                                      totalEntregadas,
-                                  icono:
-                                      Icons.check_circle,
-                                ),
+                                      titulo: 'Entregas',
+                                      valor: totalEntregadas,
+                                      icono: Icons.check_circle,
+                                      seleccionado:
+                                          filtroSeleccionado == 'ENTREGAS',
+                                      onTap: () {
+                                        setState(() {
+                                          filtroSeleccionado = 'ENTREGAS';
+                                        });
+                                      },
+                                    ),
                               ),
 
                               const SizedBox(
@@ -266,13 +474,17 @@ class _MiRutaScreenState
                               Expanded(
                                 child:
                                     _ResumenCard(
-                                  titulo:
-                                      'Devolución',
-                                  valor:
-                                      totalDevoluciones,
-                                  icono:
-                                      Icons.assignment_return,
-                                ),
+                                      titulo: 'Devolución',
+                                      valor: totalDevoluciones,
+                                      icono: Icons.assignment_return,
+                                      seleccionado:
+                                          filtroSeleccionado == 'DEVOLUCIONES',
+                                      onTap: () {
+                                        setState(() {
+                                          filtroSeleccionado = 'DEVOLUCIONES';
+                                        });
+                                      },
+                                    ),
                               ),
 
                             ],
@@ -309,7 +521,7 @@ class _MiRutaScreenState
                               ),
 
                               Text(
-                                '${envios.length} guías',
+                                '${enviosFiltrados.length} guías',
                               ),
 
                             ],
@@ -325,7 +537,7 @@ class _MiRutaScreenState
                         Expanded(
 
                           child:
-                              envios.isEmpty
+                              enviosFiltrados.isEmpty
                                   ? const Center(
                                       child: Text(
                                         'No existen guías '
@@ -348,8 +560,7 @@ class _MiRutaScreenState
                                           24,
                                         ),
 
-                                        itemCount:
-                                            envios.length,
+                                        itemCount: enviosFiltrados.length,
 
                                         separatorBuilder:
                                             (
@@ -366,13 +577,27 @@ class _MiRutaScreenState
                                           index,
                                         ) {
 
-                                          final envio =
-                                              envios[index];
+                                          final envio = enviosFiltrados[index];
 
-                                          return _GuiaRutaCard(
-                                            envio:
-                                                envio,
-                                          );
+                                          final numeroGuia =
+                                            envio['numero_guia']
+                                                ?.toString() ??
+                                            '';
+
+                                        return _GuiaRutaCard(
+                                          envio: envio,
+                                          seleccionada:
+                                              guiasSeleccionadas.contains(
+                                            numeroGuia,
+                                          ),
+                                          modoSeleccion:
+                                              filtroSeleccionado == 'PENDIENTES',
+                                          onSeleccionChanged: () {
+                                            toggleSeleccionGuia(
+                                              numeroGuia,
+                                            );
+                                          },
+                                        );
 
                                         },
 
@@ -385,7 +610,110 @@ class _MiRutaScreenState
                       ],
 
                     ),
+bottomNavigationBar:
+    filtroSeleccionado == 'PENDIENTES'
+        ? SafeArea(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(
+                12,
+                10,
+                12,
+                10,
+              ),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .scaffoldBackgroundColor,
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 8,
+                    offset: Offset(0, -2),
+                    color: Color.fromARGB(
+                      30,
+                      0,
+                      0,
+                      0,
+                    ),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
 
+                  Text(
+                    '${guiasSeleccionadas.length} '
+                    'guías seleccionadas',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Row(
+                    children: [
+
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed:
+                              guiasSeleccionadas.isEmpty
+                                  ? null
+                                  : () {
+                                      // Próximo bloque:
+                                      // flujo de entrega.
+                                    },
+                          icon: const Icon(
+                            Icons.check_circle_outline,
+                          ),
+                          label: const Text(
+                            'ENTREGAR',
+                          ),
+                          style:
+                              ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Colors.green.shade700,
+                            foregroundColor:
+                                Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed:
+                              guiasSeleccionadas.isEmpty
+                                  ? null
+                                  : () {
+                                      // Próximo bloque:
+                                      // flujo de devolución.
+                                    },
+                          icon: const Icon(
+                            Icons.assignment_return_outlined,
+                          ),
+                          label: const Text(
+                            'DEVOLVER',
+                          ),
+                          style:
+                              OutlinedButton.styleFrom(
+                            foregroundColor:
+                                Colors.red.shade700,
+                            side: BorderSide(
+                              color: Colors.red.shade400,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    ],
+                  ),
+
+                ],
+              ),
+            ),
+          )
+        : null,
     );
 
   }
@@ -404,6 +732,10 @@ class _ResumenCard extends StatelessWidget {
 
   final IconData icono;
 
+  final bool seleccionado;
+
+  final VoidCallback onTap;
+
   const _ResumenCard({
 
     required this.titulo,
@@ -411,6 +743,10 @@ class _ResumenCard extends StatelessWidget {
     required this.valor,
 
     required this.icono,
+
+    required this.seleccionado,
+  
+    required this.onTap,
 
   });
 
@@ -420,72 +756,59 @@ class _ResumenCard extends StatelessWidget {
   ) {
 
     return Card(
-
-      child: Padding(
-
-        padding:
-            const EdgeInsets.symmetric(
-          vertical: 12,
-          horizontal: 6,
-        ),
-
-        child: Column(
-
-          children: [
-
-            Icon(
-              icono,
-              size: 24,
-            ),
-
-            const SizedBox(
-              height: 6,
-            ),
-
-            Text(
-
-              valor.toString(),
-
-              style:
-                  const TextStyle(
-
-                fontSize: 22,
-
-                fontWeight:
-                    FontWeight.bold,
-
+      elevation: seleccionado ? 4 : 1,
+      color: seleccionado
+          ? Colors.orange.shade100
+          : null,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: 12,
+            horizontal: 6,
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icono,
+                size: 24,
+                color: seleccionado
+                    ? Colors.orange.shade800
+                    : Colors.grey.shade700,
               ),
 
-            ),
+              const SizedBox(height: 6),
 
-            const SizedBox(
-              height: 2,
-            ),
-
-            FittedBox(
-
-              fit:
-                  BoxFit.scaleDown,
-
-              child: Text(
-
-                titulo,
-
-                style:
-                    const TextStyle(
-                  fontSize: 12,
+              Text(
+                valor.toString(),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: seleccionado
+                      ? Colors.orange.shade900
+                      : null,
                 ),
-
               ),
 
-            ),
+              const SizedBox(height: 2),
 
-          ],
-
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  titulo,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: seleccionado
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-
       ),
-
     );
 
   }
@@ -500,10 +823,18 @@ class _GuiaRutaCard extends StatelessWidget {
 
   final Map<String, dynamic> envio;
 
+  final bool seleccionada;
+
+  final VoidCallback onSeleccionChanged;
+
+  final bool modoSeleccion;
+  
   const _GuiaRutaCard({
 
     required this.envio,
-
+    required this.seleccionada,
+    required this.modoSeleccion,
+    required this.onSeleccionChanged,
   });
 
   @override
@@ -516,199 +847,68 @@ class _GuiaRutaCard extends StatelessWidget {
             ?.toString() ??
         '';
 
-    final pedido =
-        envio['pedido']
-            ?.toString() ??
-        '';
-
-    final cliente =
-        envio['nombre_cliente']
-            ?.toString() ??
-        envio['cliente']
-            ?.toString() ??
-        '';
-
-    final colonia =
-        envio['colonia']
-            ?.toString() ??
-        '';
-
-    final ciudad =
-        envio['ciudad']
-            ?.toString() ??
-        '';
-
-    final estatus =
-        envio['estatus_local']
-            ?.toString()
-            .toUpperCase() ??
-        'PENDIENTE';
-
     return Card(
-
-      child: Padding(
-
-        padding:
-            const EdgeInsets.all(
-          14,
-        ),
-
-        child: Row(
-
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-
-          children: [
-
-            //--------------------------------------------------
-            // Estado
-            //--------------------------------------------------
-
-            const Padding(
-
-              padding:
-                  EdgeInsets.only(
-                top: 4,
-              ),
-
-              child: Icon(
-                Icons.local_shipping_outlined,
-                size: 30,
-              ),
-
+        margin: EdgeInsets.zero,
+        elevation: seleccionada ? 2 : 1,
+        color: seleccionada
+            ? Colors.orange.shade50
+            : null,
+        child: InkWell(
+          onTap: modoSeleccion
+              ? onSeleccionChanged
+              : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 8,
+              vertical: 6,
             ),
+            child: Row(
+              children: [
 
-            const SizedBox(
-              width: 12,
-            ),
+                if (modoSeleccion)
+                    Checkbox(
+                      value: seleccionada,
+                      activeColor:
+                          Colors.orange.shade700,
+                      onChanged: (_) {
+                        onSeleccionChanged();
+                      },
+                    ),
 
-            //--------------------------------------------------
-            // Información
-            //--------------------------------------------------
-
-            Expanded(
-
-              child: Column(
-
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-
-                children: [
-
-                  Text(
-
+                Expanded(
+                  child: Text(
                     numeroGuia,
-
-                    style:
-                        const TextStyle(
-
+                    style: TextStyle(
                       fontSize: 16,
-
-                      fontWeight:
-                          FontWeight.bold,
-
+                      fontWeight: FontWeight.w600,
+                      color: seleccionada
+                          ? Colors.orange.shade900
+                          : const Color.fromARGB(
+                              255,
+                              5,
+                              61,
+                              126,
+                            ),
                     ),
-
                   ),
+                ),
 
-                  if (pedido.isNotEmpty) ...[
-
-                    const SizedBox(
-                      height: 4,
-                    ),
-
-                    Text(
-                      'Pedido: $pedido',
-                    ),
-
-                  ],
-
-                  if (cliente.isNotEmpty) ...[
-
-                    const SizedBox(
-                      height: 4,
-                    ),
-
-                    Text(
-                      cliente,
-                    ),
-
-                  ],
-
-                  if (
-                      colonia.isNotEmpty ||
-                      ciudad.isNotEmpty
-                  ) ...[
-
-                    const SizedBox(
-                      height: 4,
-                    ),
-
-                    Text(
-                      [
-                        colonia,
-                        ciudad,
-                      ]
-                          .where(
-                            (valor) =>
-                                valor.isNotEmpty,
-                          )
-                          .join(', '),
-                    ),
-
-                  ],
-
-                  const SizedBox(
-                    height: 8,
+                IconButton(
+                  onPressed: () {
+                    // Próximo bloque:
+                    // abrir detalle de la guía.
+                  },
+                  icon: const Icon(
+                    Icons.chevron_right,
                   ),
+                ),
 
-                  Text(
-
-                    estatus == 'CARGADA'
-                        ? 'Pendiente de entrega'
-                        : estatus,
-
-                    style:
-                        const TextStyle(
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-
-                  ),
-
-                ],
-
-              ),
-
+              ],
             ),
-
-            //--------------------------------------------------
-            // Detalle
-            //--------------------------------------------------
-
-            IconButton(
-
-              onPressed: () {
-
-                // Próximo bloque:
-                // detalle de la guía.
-
-              },
-
-              icon:
-                  const Icon(
-                Icons.chevron_right,
-              ),
-
-            ),
-
-          ],
-
+          ),
         ),
-
-      ),
-
-    );
+      );
 
   }
 
