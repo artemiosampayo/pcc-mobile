@@ -39,6 +39,7 @@ import '../../services/local/envio_local_service.dart';
 import '../../widgets/operation_header.dart';
 import '../scanner/barcode_scanner_screen.dart';
 import '../../services/device/device_feedback_service.dart';
+import '../entrega/entrega_screen.dart';
 
 class MiRutaScreen extends StatefulWidget {
 
@@ -656,12 +657,83 @@ bottomNavigationBar:
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed:
-                              guiasSeleccionadas.isEmpty
-                                  ? null
-                                  : () {
-                                      // Próximo bloque:
-                                      // flujo de entrega.
-                                    },
+                            guiasSeleccionadas.isEmpty
+                                ? null
+                                : () async {
+
+                                    //------------------------------------------------
+                                    // Obtener guías seleccionadas
+                                    //------------------------------------------------
+
+                                    final enviosSeleccionados =
+                                        envios.where(
+                                      (envio) {
+
+                                        final numeroGuia =
+                                            envio['numero_guia']
+                                                    ?.toString() ??
+                                                '';
+
+                                        return guiasSeleccionadas
+                                            .contains(numeroGuia);
+
+                                      },
+                                    ).toList();
+
+                                    //------------------------------------------------
+                                    // Abrir flujo de entrega
+                                    //------------------------------------------------
+
+                                    final entregaRealizada =
+                                        await Navigator.push<bool>(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            EntregaScreen(
+                                          envios:
+                                              enviosSeleccionados,
+                                        ),
+                                      ),
+                                    );
+
+                                    //------------------------------------------------
+                                    // Entrega cancelada
+                                    //------------------------------------------------
+
+                                    if (entregaRealizada != true) {
+                                      return;
+                                    }
+
+                                    //------------------------------------------------
+                                    // Limpiar selección temporal
+                                    //------------------------------------------------
+
+                                    guiasSeleccionadas.clear();
+
+                                    //------------------------------------------------
+                                    // Recargar estado local de la ruta
+                                    //------------------------------------------------
+
+                                    await cargarDatos();
+
+                                    //------------------------------------------------
+                                    // Validar contexto
+                                    //------------------------------------------------
+
+                                    if (!mounted) {
+                                      return;
+                                    }
+
+                                    //------------------------------------------------
+                                    // Cambiar a pestaña Entregas
+                                    //------------------------------------------------
+
+                                    setState(() {
+                                      filtroSeleccionado =
+                                          'ENTREGAS';
+                                    });
+
+                                  },
                           icon: const Icon(
                             Icons.check_circle_outline,
                           ),

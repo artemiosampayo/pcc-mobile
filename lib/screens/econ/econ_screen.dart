@@ -199,20 +199,34 @@ Future<void> cargar() async {
 
   if (envio['escaneada'] == 1) {
 
-    await DeviceFeedbackService.instance.scanDuplicate();
+    //--------------------------------------------------------
+    // Guía ya cargada en ECON
+    //
+    // Un segundo escaneo retira la guía del manifiesto
+    // mientras ECON permanece abierto.
+    //--------------------------------------------------------
 
-    if (!mounted) return;
+    await service.desmarcarEscaneada(
+      int.parse(
+        envio['id_envio'].toString(),
+      ),
+    );
+
+    await DeviceFeedbackService.instance
+        .scanDuplicate();
+
+    await cargar();
+
+    if (!mounted) {
+      return;
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
-
       const SnackBar(
-
         content: Text(
-          'La guía ya fue escaneada.',
+          'Guía retirada del ECON.',
         ),
-
       ),
-
     );
 
     return;

@@ -45,6 +45,18 @@ class DatabaseTables {
     await db.execute(
       createMovimientosTable(),
     );
+
+    await db.execute(
+      createEntregasTable(),
+    );
+
+    await db.execute(
+      createEntregaEnviosTable(),
+    );
+
+    await db.execute(
+      createEvidenciasTable(),
+    );
   }
 
   //============================================================
@@ -238,6 +250,131 @@ static String createMovimientosTable() {
       id_operacion,
       id_envio,
       codigo_estado
+    )
+
+  )
+
+  ''';
+
+}
+//============================================================
+// TABLA
+// ENTREGAS LOCALES
+//
+// Representa una entrega física realizada por el operador.
+//
+// Una entrega puede contener una o varias guías.
+//
+// La fotografía y la firma NO se almacenan en esta tabla.
+// Las evidencias se administran mediante evidencias_local.
+//============================================================
+
+static String createEntregasTable() {
+
+  return '''
+
+  CREATE TABLE entregas_local(
+
+    id_entrega_local INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    uuid_entrega TEXT NOT NULL UNIQUE,
+
+    id_operacion INTEGER NOT NULL,
+
+    quien_recibe TEXT NOT NULL,
+
+    fecha_entrega TEXT NOT NULL,
+
+    sincronizado INTEGER DEFAULT 0,
+
+    fecha_sincronizacion TEXT
+
+  )
+
+  ''';
+
+}
+
+
+//============================================================
+// TABLA
+// ENTREGA - ENVÍOS
+//
+// Relaciona una entrega física con las guías entregadas.
+//
+// Cada guía mantiene su movimiento ENTREGADO independiente.
+//============================================================
+
+static String createEntregaEnviosTable() {
+
+  return '''
+
+  CREATE TABLE entrega_envios_local(
+
+    id_local INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    uuid_entrega TEXT NOT NULL,
+
+    id_envio INTEGER NOT NULL,
+
+    uuid_movimiento TEXT NOT NULL,
+
+    UNIQUE(
+      uuid_entrega,
+      id_envio
+    )
+
+  )
+
+  ''';
+
+}
+
+
+//============================================================
+// TABLA
+// EVIDENCIAS LOCALES
+//
+// Cola local de archivos pendientes de sincronización.
+//
+// Los archivos permanecen físicamente en almacenamiento
+// persistente de la aplicación hasta confirmar que PCC API
+// recibió correctamente la evidencia.
+//============================================================
+
+static String createEvidenciasTable() {
+
+  return '''
+
+  CREATE TABLE evidencias_local(
+
+    id_local INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    uuid_evidencia TEXT NOT NULL UNIQUE,
+
+    uuid_entrega TEXT NOT NULL,
+
+    tipo TEXT NOT NULL,
+
+    ruta_archivo TEXT NOT NULL,
+
+    nombre_archivo TEXT NOT NULL,
+
+    mime_type TEXT NOT NULL,
+
+    fecha_creacion TEXT NOT NULL,
+
+    sincronizado INTEGER DEFAULT 0,
+
+    intentos INTEGER DEFAULT 0,
+
+    ultimo_error TEXT,
+
+    fecha_sincronizacion TEXT,
+
+    UNIQUE(
+      uuid_entrega,
+      tipo
     )
 
   )

@@ -42,7 +42,7 @@ class DatabaseHelper {
   static const String databaseName =
       'pcc_mobile.db';
 
-  static const int databaseVersion = 5;
+  static const int databaseVersion = 6;
 
   //------------------------------------------------------------
   // Base de datos
@@ -91,13 +91,11 @@ class DatabaseHelper {
 
       onCreate: _onCreate,
 
-      // En desarrollo preferimos
-      // reinstalar la aplicación.
-      //
-      // Cuando salga la V1
-      // implementaremos migraciones.
-      //
-      // onUpgrade: _onUpgrade,
+      //--------------------------------------------------------
+      // Migraciones de Base de Datos
+      //--------------------------------------------------------
+
+      onUpgrade: _onUpgrade,
 
     );
 
@@ -125,17 +123,37 @@ class DatabaseHelper {
   // Futuras migraciones
   //------------------------------------------------------------
 
-  Future<void> _onUpgrade(
+  Future<void> _onUpgrade(Database db,int oldVersion,int newVersion,) 
+  async {
 
-      Database db,
+    //--------------------------------------------------------
+    // Migración
+    // v5 → v6
+    //
+    // Agrega soporte local para:
+    //
+    // • Entregas.
+    // • Relación entrega - envíos.
+    // • Evidencias.
+    //
+    // No elimina ni modifica información existente.
+    //--------------------------------------------------------
 
-      int oldVersion,
+    if (oldVersion < 6) {
 
-      int newVersion,
+      await db.execute(
+        DatabaseTables.createEntregasTable(),
+      );
 
-      ) async {
+      await db.execute(
+        DatabaseTables.createEntregaEnviosTable(),
+      );
 
-    // Pendiente para V1
+      await db.execute(
+        DatabaseTables.createEvidenciasTable(),
+      );
+
+    }
 
   }
 
