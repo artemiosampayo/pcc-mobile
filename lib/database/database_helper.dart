@@ -42,7 +42,7 @@ class DatabaseHelper {
   static const String databaseName =
       'pcc_mobile.db';
 
-  static const int databaseVersion = 6;
+  static const int databaseVersion = 7;
 
   //------------------------------------------------------------
   // Base de datos
@@ -151,6 +151,23 @@ class DatabaseHelper {
 
       await db.execute(
         DatabaseTables.createEvidenciasTable(),
+      );
+
+    }
+    //--------------------------------------------------------
+    // Migración
+    // v6 → v7
+    //
+    // Agrega la tabla de referencia entre UUID local e
+    // identificador remoto.
+    //--------------------------------------------------------
+
+    if (oldVersion < 7) {
+
+      await db.execute(
+
+        DatabaseTables.createMovimientosRemotosTable(),
+
       );
 
     }

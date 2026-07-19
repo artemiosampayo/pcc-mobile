@@ -38,7 +38,11 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
 import '../../core/workflow/workflow_manager.dart';
+import '../../core/authentication/authentication_manager.dart';
+
 import '../../services/local/entrega_local_service.dart';
+import '../../services/sync/movimiento_sync_service.dart';
+import '../../services/sync/evidencia_sync_service.dart';
 
 
 class EntregaScreen extends StatefulWidget {
@@ -299,6 +303,37 @@ Future<void> realizarEntrega() async {
 
         idRuta:
             operacionActual.idRuta!,
+      );
+
+      //------------------------------------------------------
+      // Obtener sesión actual
+      //------------------------------------------------------
+
+      final sesion =
+          await AuthenticationManager.instance
+              .obtenerSesion();
+
+      if (sesion == null) {
+        throw Exception(
+          'No existe una sesión activa.',
+        );
+      }
+
+      //------------------------------------------------------
+      // Sincronizar movimientos pendientes
+      //------------------------------------------------------
+
+      await MovimientoSyncService.instance
+          .sincronizarPendientes(
+        token: sesion.token,
+      );
+      //------------------------------------------------------
+      // Sincronizar evidencias pendientes
+      //------------------------------------------------------
+
+      await EvidenciaSyncService.instance
+          .sincronizarPendientes(
+        token: sesion.token,
       );
 
       //------------------------------------------------------

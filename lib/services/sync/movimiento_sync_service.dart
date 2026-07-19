@@ -26,6 +26,7 @@
 import '../api/mobile_service.dart';
 import '../local/movimiento_local_service.dart';
 import 'package:flutter/foundation.dart';
+import '../local/movimiento_remoto_local_service.dart';
 
 class MovimientoSyncService {
 
@@ -70,16 +71,31 @@ class MovimientoSyncService {
 
       try {
 
-        await _mobileService.registrarMovimiento(
-          token: token,
-          movimiento: movimiento,
-        );
+        final response =
+            await _mobileService.registrarMovimiento(
+              token: token,
+              movimiento: movimiento,
+            );
 
-        await _localService.marcarSincronizado(
-          uuid,
-        );
+        if (response.success) {
 
-        sincronizados++;
+          await MovimientoRemotoLocalService
+              .instance
+              .guardarRelacion(
+
+                uuid,
+
+                response.idMovimiento,
+
+              );
+
+          await _localService.marcarSincronizado(
+            uuid,
+          );
+
+          sincronizados++;
+
+        }
 
       } catch (e) {
         debugPrint(

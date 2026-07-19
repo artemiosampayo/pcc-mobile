@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'dart:convert';
 import '../../core/constants/app_constants.dart';
 
+
 class MobileService {
 
   final Dio dio = Dio();
@@ -290,7 +291,7 @@ print(response.data);
 // durante reintentos de sincronización.
 //----------------------------------------------------------
 
-  Future<void> registrarMovimiento({
+  Future<RegistroMovimientoResponse> registrarMovimiento({
 
     required String token,
 
@@ -370,7 +371,107 @@ print(response.data);
       );
     }
 
+    return RegistroMovimientoResponse(
+
+    success:
+        data['success'] ?? true,
+
+    idMovimiento:
+        int.parse(
+          data['id_movimiento'].toString(),
+        ),
+
+    mensaje:
+        data['mensaje'] ?? '',
+
+  );
+
+  }
+  //----------------------------------------------------------
+  // REGISTRAR EVIDENCIA
+  //----------------------------------------------------------
+
+  Future<void> registrarEvidencia({
+
+    required String token,
+
+    required int idMovimiento,
+
+    required Map<String, dynamic> evidencia,
+
+  }) async {
+
+    final formData = FormData.fromMap({
+
+      'id_movimiento': idMovimiento,
+
+      'tipo': evidencia['tipo'],
+
+      'descripcion': evidencia['descripcion'] ?? '',
+
+      'archivo': await MultipartFile.fromFile(
+
+        evidencia['ruta_archivo'],
+
+        filename: evidencia['nombre_archivo'],
+
+      ),
+
+    });
+
+    final response = await dio.post(
+
+      '${AppConstants.apiUrl}/api/evidencias',
+
+      data: formData,
+
+      options: Options(
+
+        headers: {
+
+          'Authorization': 'Bearer $token',
+
+        },
+
+      ),
+
+    );
+
+    dynamic data = response.data;
+
+    if (data is String) {
+      data = jsonDecode(data);
+    }
+
+    if (data is Map && data['success'] != true) {
+      throw Exception(
+        data['error'] ??
+        'Error registrando evidencia',
+      );
+    }
   }
 
+}
+//----------------------------------------------------------
+// RESPUESTA REGISTRO MOVIMIENTO
+//----------------------------------------------------------
+
+class RegistroMovimientoResponse {
+
+  final bool success;
+
+  final int idMovimiento;
+
+  final String mensaje;
+
+  const RegistroMovimientoResponse({
+
+    required this.success,
+
+    required this.idMovimiento,
+
+    required this.mensaje,
+
+  });
 
 }

@@ -206,6 +206,8 @@ class EntregaLocalService {
 
       int movimientosCreados = 0;
 
+      String? uuidMovimientoPrincipal;
+
       //------------------------------------------------------
       // Transacción SQLite
       //------------------------------------------------------
@@ -255,6 +257,8 @@ class EntregaLocalService {
 
             final uuidMovimiento =
                 _uuid.v4();
+            
+            uuidMovimientoPrincipal ??= uuidMovimiento;
 
             //----------------------------------------------
             // Movimiento ENTREGADO
@@ -373,8 +377,12 @@ class EntregaLocalService {
               'uuid_entrega':
                   uuidEntrega,
 
+              'uuid_movimiento': uuidMovimientoPrincipal,
+
               'tipo':
                   'FOTO',
+
+              'descripcion': 'Fotografía de evidencia de entrega',
 
               'ruta_archivo':
                   fotoPath,
@@ -417,8 +425,12 @@ class EntregaLocalService {
               'uuid_entrega':
                   uuidEntrega,
 
+              'uuid_movimiento': uuidMovimientoPrincipal,
+
               'tipo':
                   'FIRMA',
+
+              'descripcion': 'Firma de recibido',
 
               'ruta_archivo':
                   firmaPath,

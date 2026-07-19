@@ -57,6 +57,10 @@ class DatabaseTables {
     await db.execute(
       createEvidenciasTable(),
     );
+
+    await db.execute(
+      createMovimientosRemotosTable(),
+    );
   }
 
   //============================================================
@@ -257,6 +261,8 @@ static String createMovimientosTable() {
   ''';
 
 }
+
+
 //============================================================
 // TABLA
 // ENTREGAS LOCALES
@@ -354,7 +360,11 @@ static String createEvidenciasTable() {
 
     uuid_entrega TEXT NOT NULL,
 
+    uuid_movimiento TEXT NOT NULL,
+
     tipo TEXT NOT NULL,
+    
+    descripcion TEXT NOT NULL,
 
     ruta_archivo TEXT NOT NULL,
 
@@ -382,5 +392,34 @@ static String createEvidenciasTable() {
   ''';
 
 }
+//============================================================
+// TABLA
+// MOVIMIENTOS REMOTOS
+//
+// Relaciona el UUID del movimiento local con el ID generado
+// por PCC API.
+//
+// uuid_movimiento ---> id_movimiento_remoto
+//============================================================
+
+static String createMovimientosRemotosTable() {
+
+  return '''
+
+  CREATE TABLE movimientos_remotos(
+
+    uuid_movimiento TEXT PRIMARY KEY,
+
+    id_movimiento_remoto INTEGER NOT NULL,
+
+    fecha_registro TEXT NOT NULL
+
+  )
+
+  ''';
+
+}
+
+
 
 }
