@@ -42,7 +42,7 @@ class DatabaseHelper {
   static const String databaseName =
       'pcc_mobile.db';
 
-  static const int databaseVersion = 7;
+  static const int databaseVersion = 8;
 
   //------------------------------------------------------------
   // Base de datos
@@ -169,6 +169,23 @@ class DatabaseHelper {
         DatabaseTables.createMovimientosRemotosTable(),
 
       );
+
+    }
+
+    //--------------------------------------------------------
+    // Migración
+    // v7 → v8
+    //
+    // Agrega catálogo local de devoluciones.
+    //--------------------------------------------------------
+
+    if (oldVersion < 8) {
+
+        await db.execute(
+
+            DatabaseTables.createCatalogoDevolucionesTable(),
+
+        );
 
     }
 

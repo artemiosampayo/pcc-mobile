@@ -61,6 +61,10 @@ class DatabaseTables {
     await db.execute(
       createMovimientosRemotosTable(),
     );
+
+    await db.execute(
+        createCatalogoDevolucionesTable(),
+    );
   }
 
   //============================================================
@@ -419,7 +423,37 @@ static String createMovimientosRemotosTable() {
   ''';
 
 }
+//============================================================
+// TABLA
+// CATALOGO DEVOLUCIONES
+//
+// Catálogo local utilizado durante la operación offline.
+//
+// Esta información se sincroniza desde PCC API al iniciar
+// una operación.
+//============================================================
 
+static String createCatalogoDevolucionesTable() {
+
+  return '''
+
+  CREATE TABLE catalogo_devoluciones_local(
+
+    id_devolucion INTEGER PRIMARY KEY,
+
+    codigo TEXT NOT NULL,
+
+    descripcion TEXT NOT NULL,
+
+    orden_visual INTEGER NOT NULL,
+
+    fecha_sincronizacion TEXT
+
+  )
+
+  ''';
+
+}
 
 
 }
