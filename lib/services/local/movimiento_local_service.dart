@@ -184,6 +184,10 @@ Future<int> crearLoteEcon({
 
   required int idRuta,
 
+  double? latitud,
+
+  double? longitud,
+
 }) async {
 
   final db =
@@ -234,10 +238,10 @@ Future<int> crearLoteEcon({
                 idRuta,
 
             'latitud':
-                null,
+                latitud,
 
             'longitud':
-                null,
+                longitud,
 
             'dispositivo':
                 null,

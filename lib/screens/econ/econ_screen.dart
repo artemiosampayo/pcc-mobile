@@ -11,6 +11,7 @@ import '../../core/enums/operation_state.dart';
 import '../ruta/inicio_ruta_screen.dart';
 import '../../services/local/movimiento_local_service.dart';
 import '../../services/sync/movimiento_sync_service.dart';
+import '../../services/device/location_service.dart';
 
 class EconScreen extends StatefulWidget {
 
@@ -562,6 +563,12 @@ Padding(
                     'La operación no contiene todos los datos requeridos.',
                   );
                 }
+                final ubicacion =
+                    await LocationService.instance.obtenerUbicacion();
+
+                if (!ubicacion.success) {
+                  throw Exception(ubicacion.mensaje);
+                }
 
                 final movimientosCreados =
                     await movimientoService.crearLoteEcon(
@@ -570,6 +577,8 @@ Padding(
                   idUbicacion: operacionActual.idUbicacion!,
                   idEmpleado: operacionActual.idOperador!,
                   idRuta: operacionActual.idRuta!,
+                  latitud: ubicacion.latitud,
+                  longitud: ubicacion.longitud,
                 );
 
                 final session =
@@ -622,7 +631,14 @@ Padding(
                   ),
                 );
               } catch (e) {
-                if (!context.mounted) return;
+
+                if (!context.mounted) {
+                  return;
+                }
+
+                setState(() {
+                  confirmandoEcon = false;
+                });
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -631,6 +647,7 @@ Padding(
                     ),
                   ),
                 );
+
               }
 
               // Aquí en el siguiente bloque

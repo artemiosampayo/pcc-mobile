@@ -118,6 +118,7 @@ class CatalogoLocalService {
       orderBy: 'orden_visual ASC',
 
     );
+    
 
     return result
 

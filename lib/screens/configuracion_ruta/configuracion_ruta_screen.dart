@@ -11,6 +11,8 @@ import '../../core/enums/operation_state.dart';
 import '../../models/workflow_model.dart';
 import '../ruta/inicio_ruta_screen.dart';
 import '../ruta/mi_ruta_screen.dart';
+import '../../managers/sync_manager.dart';
+import '../../services/local/catalogo_local_service.dart';
 
 class ConfiguracionRutaScreen
     extends StatefulWidget {
@@ -356,12 +358,14 @@ async {
           idUsuario,
 
     );
+    print("A - Operación creada");
+    
 
     final prefs =
 
         await SharedPreferences
             .getInstance();
-
+print("B - SharedPreferences obtenido");
     await prefs.setInt(
 
       "id_operacion",
@@ -369,7 +373,7 @@ async {
       idOperacion,
 
     );
-
+print("C - id_operacion guardado");
     await prefs.setInt(
 
       "id_ruta",
@@ -379,6 +383,44 @@ async {
       ],
 
     );
+print("D - id_ruta guardado");
+    //==============================
+    // SINCRONIZAR CATÁLOGOS
+    //==============================
+print("E - Antes de sincronizar");
+
+    final syncManager = SyncManager();
+print("F - SyncManager creado");
+    final resultado = await syncManager.sincronizarTodo(token);
+    print("G - Sincronización terminada");
+    print("H1 - Antes de obtener catálogo");
+    final catalogo =
+    await CatalogoLocalService.instance.obtenerCatalogo();
+    print("H2 - Después de obtener catálogo");
+print("H - Catálogo leído");
+    print("======================");
+    print("CATALOGO DEVOLUCIONES");
+    print("TOTAL: ${catalogo.length}");
+
+    for (final item in catalogo) {
+      print(item.toMap());
+    }
+
+    print("======================");
+    print("===== SYNC RESULT =====");
+    print("Success: ${resultado.success}");
+
+    for (final modulo in resultado.modulos) {
+      print("${modulo.nombre}: ${modulo.success}");
+    }
+
+    print("=======================");
+
+    if (!resultado.success) {
+      throw Exception(
+        "No fue posible sincronizar los catálogos.",
+      );
+    }
 
     //==============================
     // DESCARGAR GUIAS
@@ -393,7 +435,7 @@ async {
                 token,
 
                 idUbicacion);
-
+print("I - Guías descargadas");
     print("======================");
     print("GUIAS DESCARGADAS");
     print(guias.length);
@@ -407,6 +449,7 @@ async {
     await local.guardarGuias(
 
         guias);
+        print("J - Guías guardadas en SQLite");
     final workflow = WorkflowModel(
 
       idOperacion: idOperacion,
@@ -449,7 +492,7 @@ async {
     await WorkflowManager.instance
         .iniciarOperacion(
             workflow);
-
+print("K - Workflow guardado");
     print("======================");
     print("WORKFLOW GUARDADO");
     print(workflow.toMap());
@@ -489,7 +532,7 @@ print("======================");
     //=================================
     // REDIRIGE A PANTALLA ECON
     //=================================
-
+print("L - Navegando a ECON");
     Navigator.pushReplacement(
 
       context,
