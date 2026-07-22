@@ -31,6 +31,7 @@ import '../../services/local/session_local_service.dart';
 import '../../services/sync/movimiento_sync_service.dart';
 import '../../core/enums/operation_state.dart';
 import 'mi_ruta_screen.dart';
+import '../../services/device/location_service.dart';
 
 class InicioRutaScreen extends StatefulWidget {
 
@@ -257,19 +258,34 @@ class _InicioRutaScreenState
                             );
                           }
 
+                          //----------------------------------------------------------
+                          // Obtener ubicación del dispositivo
+                          //----------------------------------------------------------
+
+                          final ubicacion =
+                              await LocationService.instance
+                                  .obtenerUbicacion();
+
+                          debugPrint(
+                            'GPS EN_RUTA -> '
+                            '${ubicacion.latitud}, '
+                            '${ubicacion.longitud}',
+                          );
+
+                          //----------------------------------------------------------
+                          // Crear movimientos EN_RUTA
+                          //----------------------------------------------------------
+
                           final movimientosCreados =
                               await movimientoLocalService
                                   .crearLoteEnRuta(
-                            idOperacion:
-                                operacionActual.idOperacion!,
-                            envios:
-                                envios,
-                            idUbicacion:
-                                operacionActual.idUbicacion!,
-                            idEmpleado:
-                                operacionActual.idOperador!,
-                            idRuta:
-                                operacionActual.idRuta!,
+                            idOperacion: operacionActual.idOperacion!,
+                            envios: envios,
+                            idUbicacion: operacionActual.idUbicacion!,
+                            idEmpleado: operacionActual.idOperador!,
+                            idRuta: operacionActual.idRuta!,
+                            latitud: ubicacion.latitud,
+                            longitud: ubicacion.longitud,
                           );
 
                           final session =

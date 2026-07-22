@@ -373,6 +373,10 @@ Future<int> marcarEstadoOperacionSincronizado({
     required int idEmpleado,
 
     required int idRuta,
+    
+    double? latitud,
+
+    double? longitud,
 
   }) async {
 
@@ -424,10 +428,10 @@ Future<int> marcarEstadoOperacionSincronizado({
                   idRuta,
 
               'latitud':
-                  null,
+                  latitud,
 
               'longitud':
-                  null,
+                  longitud,
 
               'dispositivo':
                   null,
