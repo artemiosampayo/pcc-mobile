@@ -44,6 +44,9 @@ import '../../services/local/entrega_local_service.dart';
 import '../../services/sync/movimiento_sync_service.dart';
 import '../../services/sync/evidencia_sync_service.dart';
 
+import '../../services/device/location_service.dart';
+import '../../widgets/loading_dialog.dart';
+
 
 class EntregaScreen extends StatefulWidget {
 
@@ -150,7 +153,7 @@ class _EntregaScreenState
 //----------------------------------------------------------
 
 Future<void> realizarEntrega() async {
-
+    final currentContext = context;
     //--------------------------------------------------------
     // Evitar doble ejecución
     //--------------------------------------------------------
@@ -219,7 +222,12 @@ Future<void> realizarEntrega() async {
       setState(() {
         realizandoEntrega = true;
       });
+      if (!mounted) return;
 
+      LoadingDialog.show(
+        currentContext,
+        message: 'Realizando entrega...',
+      );
       //------------------------------------------------------
       // Obtener operación activa
       //------------------------------------------------------
@@ -253,6 +261,21 @@ Future<void> realizarEntrega() async {
         );
 
       }
+
+      //------------------------------------------------------
+      // Obtener ubicación GPS
+      //------------------------------------------------------
+
+      final ubicacion =
+          await LocationService.instance.obtenerUbicacion();
+
+      if (!ubicacion.success) {
+        throw Exception(ubicacion.mensaje);
+      }
+      debugPrint(
+      'GPS ENTREGA -> '
+      '${ubicacion.latitud}, '
+      '${ubicacion.longitud}');
 
       //------------------------------------------------------
       // Generar PNG de firma
@@ -303,6 +326,10 @@ Future<void> realizarEntrega() async {
 
         idRuta:
             operacionActual.idRuta!,
+
+        latitud: ubicacion.latitud,
+
+        longitud: ubicacion.longitud,
       );
 
       //------------------------------------------------------
@@ -408,6 +435,10 @@ Future<void> realizarEntrega() async {
           ),
         ),
       );
+
+    }finally {
+
+      LoadingDialog.hide();
 
     }
 
@@ -744,25 +775,13 @@ Future<void> realizarEntrega() async {
                     realizandoEntrega
                         ? null
                         : realizarEntrega,
-                 icon:
-                    realizandoEntrega
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child:
-                                CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.check_circle_outline,
-                          ),
+                 icon: const Icon(
+                    Icons.check_circle_outline,
+                  ),
 
-                label: Text(
-                  realizandoEntrega
-                      ? 'REALIZANDO ENTREGA...'
-                      : 'REALIZAR ENTREGA',
-                ),
+                  label: const Text(
+                    'REALIZAR ENTREGA',
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
                         Colors.green.shade700,

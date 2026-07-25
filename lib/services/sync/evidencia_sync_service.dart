@@ -54,7 +54,7 @@ class EvidenciaSyncService {
       _movimientoRemotoService =
           MovimientoRemotoLocalService.instance;
 
-  Future<void> sincronizarPendientes({
+  Future<EvidenciaSyncResult> sincronizarPendientes({
 
     required String token,
 
@@ -62,6 +62,9 @@ class EvidenciaSyncService {
 
     final evidencias =
         await _localService.obtenerPendientes();
+
+    int sincronizadas = 0;
+    int errores = 0;
 
     for (final evidencia in evidencias) {
 
@@ -113,7 +116,7 @@ class EvidenciaSyncService {
           uuidEvidencia,
 
         );
-
+        sincronizadas++;
         debugPrint(
 
           'Evidencia sincronizada: $uuidEvidencia',
@@ -130,10 +133,42 @@ class EvidenciaSyncService {
 
         );
 
+        errores++;
+
       }
 
     }
+    return EvidenciaSyncResult(
+      total: evidencias.length,
+      sincronizadas: sincronizadas,
+      errores: errores,
+    );
 
   }
 
+  
+
 } 
+//============================================================
+// RESULTADO DE SINCRONIZACIÓN
+//============================================================
+
+class EvidenciaSyncResult {
+
+  final int total;
+
+  final int sincronizadas;
+
+  final int errores;
+
+  const EvidenciaSyncResult({
+    required this.total,
+    required this.sincronizadas,
+    required this.errores,
+  });
+
+  bool get completado =>
+      total > 0 &&
+      sincronizadas == total &&
+      errores == 0;
+}

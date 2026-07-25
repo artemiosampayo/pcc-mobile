@@ -353,6 +353,11 @@ print(response.data);
       ),
 
     );
+    print("STATUS:");
+print(response.statusCode);
+
+print("BODY:");
+print(response.data);
 
     dynamic data =
         response.data;

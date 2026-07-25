@@ -40,6 +40,7 @@ import '../../widgets/operation_header.dart';
 import '../scanner/barcode_scanner_screen.dart';
 import '../../services/device/device_feedback_service.dart';
 import '../entrega/entrega_screen.dart';
+import '../devolucion/devolucion_screen.dart';
 
 class MiRutaScreen extends StatefulWidget {
 
@@ -336,6 +337,83 @@ Future<void> escanearGuia() async {
   await DeviceFeedbackService
       .instance
       .scanSuccess();
+
+}
+//----------------------------------------------------------
+// Iniciar devolución
+//----------------------------------------------------------
+
+Future<void> iniciarDevolucion() async {
+
+  //--------------------------------------------------------
+  // Obtener guías seleccionadas
+  //--------------------------------------------------------
+
+  final enviosSeleccionados =
+      envios.where(
+    (envio) {
+
+      final numeroGuia =
+          envio['numero_guia']
+                  ?.toString() ??
+              '';
+
+      return guiasSeleccionadas.contains(
+        numeroGuia,
+      );
+
+    },
+  ).toList();
+
+  //--------------------------------------------------------
+  // Abrir pantalla de devolución
+  //--------------------------------------------------------
+
+  final devolucionRealizada =
+      await Navigator.push<bool>(
+    context,
+    MaterialPageRoute(
+      builder: (_) => DevolucionScreen(
+        envios: enviosSeleccionados,
+      ),
+    ),
+  );
+
+  //--------------------------------------------------------
+  // Canceló la devolución
+  //--------------------------------------------------------
+
+  if (devolucionRealizada != true) {
+    return;
+  }
+
+  //--------------------------------------------------------
+  // Limpiar selección
+  //--------------------------------------------------------
+
+  guiasSeleccionadas.clear();
+
+  //--------------------------------------------------------
+  // Recargar información
+  //--------------------------------------------------------
+
+  await cargarDatos();
+
+  //--------------------------------------------------------
+  // Validar contexto
+  //--------------------------------------------------------
+
+  if (!mounted) {
+    return;
+  }
+
+  //--------------------------------------------------------
+  // Mostrar pestaña devoluciones
+  //--------------------------------------------------------
+
+  setState(() {
+    filtroSeleccionado = 'DEVOLUCIONES';
+  });
 
 }
 
@@ -755,12 +833,9 @@ bottomNavigationBar:
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed:
-                              guiasSeleccionadas.isEmpty
-                                  ? null
-                                  : () {
-                                      // Próximo bloque:
-                                      // flujo de devolución.
-                                    },
+                          guiasSeleccionadas.isEmpty
+                              ? null
+                              : iniciarDevolucion,
                           icon: const Icon(
                             Icons.assignment_return_outlined,
                           ),

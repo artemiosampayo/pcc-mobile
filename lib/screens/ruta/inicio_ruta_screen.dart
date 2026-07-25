@@ -32,6 +32,7 @@ import '../../services/sync/movimiento_sync_service.dart';
 import '../../core/enums/operation_state.dart';
 import 'mi_ruta_screen.dart';
 import '../../services/device/location_service.dart';
+import '../../widgets/loading_dialog.dart';
 
 class InicioRutaScreen extends StatefulWidget {
 
@@ -176,10 +177,10 @@ class _InicioRutaScreenState
                 onPressed: iniciandoRuta
                     ? null
                     : () async {
-
+                        final currentContext = context;
                         final confirmar =
                             await showDialog<bool>(
-                          context: context,
+                          context: currentContext,
                           builder: (context) {
                             return AlertDialog(
                               title: const Text(
@@ -226,6 +227,12 @@ class _InicioRutaScreenState
                         setState(() {
                           iniciandoRuta = true;
                         });
+                        if (!mounted) return;
+
+                        LoadingDialog.show(
+                          currentContext,
+                          message: 'Iniciando ruta...',
+                        );
 
                         try {
 
@@ -331,30 +338,29 @@ class _InicioRutaScreenState
                             return;
                           }
 
-                          Navigator.of(context).pushReplacement(
+                          Navigator.of(currentContext).pushReplacement(
                             MaterialPageRoute(
                               builder: (context) =>
                                   const MiRutaScreen(),
                             ),
                           );
 
-                        } catch (e) {
-
+                        }catch (e) {
                           if (!mounted) return;
 
                           setState(() {
                             iniciandoRuta = false;
                           });
 
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(
+                          ScaffoldMessenger.of(currentContext).showSnackBar(
                             SnackBar(
                               content: Text(
                                 'No fue posible iniciar la ruta: $e',
                               ),
                             ),
                           );
-
+                        } finally {
+                          LoadingDialog.hide();
                         }
 
                       },

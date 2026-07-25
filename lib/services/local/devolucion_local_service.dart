@@ -3,21 +3,21 @@
 /// PCC Mobile Framework v1.0
 ///
 /// Archivo:
-/// entrega_local_service.dart
+/// devolucion_local_service.dart
 ///
 /// Carpeta:
 /// lib/services/local/
 ///
 /// Descripción:
 ///
-/// Administra el registro local de entregas.
+/// Administra el registro local de devoluciones.
 ///
 /// Responsabilidades:
 ///
-/// • Crear una entrega local.
-/// • Persistir fotografía y firma en almacenamiento privado.
-/// • Crear movimientos ENTREGADO por cada guía.
-/// • Relacionar las guías con la entrega.
+/// • Crear una devolucion local.
+/// • Persistir fotografía  en almacenamiento privado.
+/// • Crear movimientos DEVOLUCION por cada guía.
+/// • Relacionar las guías con la devolucion.
 /// • Crear la cola local de evidencias.
 /// • Actualizar el estado local de las guías.
 /// • Garantizar atomicidad de la operación SQLite.
@@ -26,12 +26,11 @@
 /// SQLite.
 ///
 /// Si la transacción falla, los archivos persistidos para la
-/// entrega son eliminados.
+/// devolucion son eliminados.
 ///
 /// ===========================================================
 
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
@@ -40,16 +39,16 @@ import 'package:uuid/uuid.dart';
 
 import '../../database/database_helper.dart';
 
-class EntregaLocalService {
+class DevolucionLocalService {
 
   //----------------------------------------------------------
   // Singleton
   //----------------------------------------------------------
 
-  static final EntregaLocalService instance =
-      EntregaLocalService._();
+  static final DevolucionLocalService instance =
+      DevolucionLocalService._();
 
-  EntregaLocalService._();
+  DevolucionLocalService._();
 
   //----------------------------------------------------------
   // UUID
@@ -71,20 +70,18 @@ class EntregaLocalService {
   }
 
   //----------------------------------------------------------
-  // Realizar entrega local
+  // Realizar devolucion local
   //----------------------------------------------------------
 
-  Future<EntregaLocalResult> realizarEntrega({
+  Future<DevolucionLocalResult> realizarDevolucion({
 
     required int idOperacion,
 
     required List<Map<String, dynamic>> envios,
 
-    required String quienRecibe,
-
     required String fotoOrigenPath,
 
-    required Uint8List firmaBytes,
+    required String motivo,
 
     required int idUbicacion,
 
@@ -105,25 +102,22 @@ class EntregaLocalService {
     if (envios.isEmpty) {
 
       throw Exception(
-        'No existen guías para realizar la entrega.',
+        'No existen guías para realizar la devolución.',
       );
 
     }
 
     //--------------------------------------------------------
-    // Identificadores de la entrega
+    // Identificadores de la devolucion
     //--------------------------------------------------------
 
-    final uuidEntrega =
+    final uuidDevolucion =
         _uuid.v4();
 
     final uuidFoto =
         _uuid.v4();
 
-    final uuidFirma =
-        _uuid.v4();
-
-    final fechaEntrega =
+    final fechaDevolucion =
         DateTime.now().toIso8601String();
 
     //--------------------------------------------------------
@@ -133,17 +127,17 @@ class EntregaLocalService {
     final applicationDirectory =
         await getApplicationDocumentsDirectory();
 
-    final entregaDirectory =
+    final devolucionDirectory =
         Directory(
           path.join(
             applicationDirectory.path,
             'evidencias',
-            'entregas',
-            uuidEntrega,
+            'devoluciones',
+            uuidDevolucion,
           ),
         );
 
-    await entregaDirectory.create(
+    await devolucionDirectory.create(
       recursive: true,
     );
 
@@ -153,15 +147,10 @@ class EntregaLocalService {
 
     final fotoPath =
         path.join(
-          entregaDirectory.path,
+          devolucionDirectory.path,
           'foto.jpg',
         );
 
-    final firmaPath =
-        path.join(
-          entregaDirectory.path,
-          'firma.png',
-        );
 
     try {
 
@@ -184,22 +173,6 @@ class EntregaLocalService {
         fotoPath,
       );
 
-      //------------------------------------------------------
-      // Persistir firma
-      //------------------------------------------------------
-
-      if (firmaBytes.isEmpty) {
-
-        throw Exception(
-          'La firma de recibido está vacía.',
-        );
-
-      }
-
-      await File(firmaPath).writeAsBytes(
-        firmaBytes,
-        flush: true,
-      );
 
       //------------------------------------------------------
       // Base de datos
@@ -220,23 +193,23 @@ class EntregaLocalService {
         (txn) async {
 
           //--------------------------------------------------
-          // Crear entrega
+          // Crear Devolucion
           //--------------------------------------------------
 
           await txn.insert(
-            'entregas_local',
+            'devoluciones_local',
             {
-              'uuid_entrega':
-                  uuidEntrega,
+              'uuid_devolucion':
+                  uuidDevolucion,
 
               'id_operacion':
                   idOperacion,
 
-              'quien_recibe':
-                  quienRecibe.trim(),
+              'motivo':
+                  motivo.trim(),
 
-              'fecha_entrega':
-                  fechaEntrega,
+              'fecha_devolucion':
+                  fechaDevolucion,
 
               'sincronizado':
                   0,
@@ -265,7 +238,7 @@ class EntregaLocalService {
             uuidMovimientoPrincipal ??= uuidMovimiento;
 
             //----------------------------------------------
-            // Movimiento ENTREGADO
+            // Movimiento DEVOLUCION
             //----------------------------------------------
 
             await txn.insert(
@@ -281,14 +254,13 @@ class EntregaLocalService {
                     idEnvio,
 
                 'codigo_estado':
-                    'ENTREGADO',
+                    'DEVOLUCION',
 
                 'id_estado':
-                    7,
+                    8,
 
                 'descripcion':
-                    'Entrega realizada a '
-                    '${quienRecibe.trim()}',
+                    'Devolución realizada. Motivo: ${motivo.trim()}',
 
                 'id_ubicacion':
                     idUbicacion,
@@ -309,7 +281,7 @@ class EntregaLocalService {
                     null,
 
                 'fecha_evento':
-                    fechaEntrega,
+                    fechaDevolucion,
 
                 'sincronizado':
                     0,
@@ -325,14 +297,14 @@ class EntregaLocalService {
             );
 
             //----------------------------------------------
-            // Relación entrega - envío
+            // Relación devolucion - envío
             //----------------------------------------------
 
             await txn.insert(
-              'entrega_envios_local',
+              'devolucion_envios_local',
               {
-                'uuid_entrega':
-                    uuidEntrega,
+                'uuid_devolucion':
+                    uuidDevolucion,
 
                 'id_envio':
                     idEnvio,
@@ -352,7 +324,7 @@ class EntregaLocalService {
               'envios_local',
               {
                 'estatus_local':
-                    'ENTREGADA',
+                    'DEVOLUCION',
 
                 'sincronizado':
                     0,
@@ -379,14 +351,14 @@ class EntregaLocalService {
                   uuidFoto,
 
               'uuid_referencia':
-                  uuidEntrega,
+                  uuidDevolucion,
 
               'uuid_movimiento': uuidMovimientoPrincipal,
 
               'tipo':
                   'FOTO',
 
-              'descripcion': 'Fotografía de evidencia de entrega',
+              'descripcion': 'Devolución realizada. Motivo: ${motivo.trim()}',
 
               'ruta_archivo':
                   fotoPath,
@@ -398,7 +370,7 @@ class EntregaLocalService {
                   'image/jpeg',
 
               'fecha_creacion':
-                  fechaEntrega,
+                  fechaDevolucion,
 
               'sincronizado':
                   0,
@@ -416,53 +388,7 @@ class EntregaLocalService {
                 ConflictAlgorithm.abort,
           );
 
-          //--------------------------------------------------
-          // Evidencia FIRMA
-          //--------------------------------------------------
-
-          await txn.insert(
-            'evidencias_local',
-            {
-              'uuid_evidencia':
-                  uuidFirma,
-
-              'uuid_referencia':
-                  uuidEntrega,
-
-              'uuid_movimiento': uuidMovimientoPrincipal,
-
-              'tipo':
-                  'FIRMA',
-
-              'descripcion': 'Firma de recibido',
-
-              'ruta_archivo':
-                  firmaPath,
-
-              'nombre_archivo':
-                  'firma.png',
-
-              'mime_type':
-                  'image/png',
-
-              'fecha_creacion':
-                  fechaEntrega,
-
-              'sincronizado':
-                  0,
-
-              'intentos':
-                  0,
-
-              'ultimo_error':
-                  null,
-
-              'fecha_sincronizacion':
-                  null,
-            },
-            conflictAlgorithm:
-                ConflictAlgorithm.abort,
-          );
+          
 
         },
       );
@@ -471,13 +397,13 @@ class EntregaLocalService {
       // Resultado
       //------------------------------------------------------
 
-      return EntregaLocalResult(
-        uuidEntrega: uuidEntrega,
+      return DevolucionLocalResult(
+        uuidDevolucion: uuidDevolucion,
         totalEnvios: envios.length,
         movimientosCreados:
             movimientosCreados,
         fotoPath: fotoPath,
-        firmaPath: firmaPath,
+
       );
 
     } catch (e) {
@@ -486,9 +412,9 @@ class EntregaLocalService {
       // Limpieza de archivos
       //------------------------------------------------------
 
-      if (await entregaDirectory.exists()) {
+      if (await devolucionDirectory.exists()) {
 
-        await entregaDirectory.delete(
+        await devolucionDirectory.delete(
           recursive: true,
         );
 
@@ -504,12 +430,12 @@ class EntregaLocalService {
 
 
 //============================================================
-// RESULTADO DE ENTREGA LOCAL
+// RESULTADO DE DEVOLUCION LOCAL
 //============================================================
 
-class EntregaLocalResult {
+class DevolucionLocalResult {
 
-  final String uuidEntrega;
+  final String uuidDevolucion;
 
   final int totalEnvios;
 
@@ -517,11 +443,11 @@ class EntregaLocalResult {
 
   final String fotoPath;
 
-  final String firmaPath;
 
-  const EntregaLocalResult({
 
-    required this.uuidEntrega,
+  const DevolucionLocalResult({
+
+    required this.uuidDevolucion,
 
     required this.totalEnvios,
 
@@ -529,7 +455,6 @@ class EntregaLocalResult {
 
     required this.fotoPath,
 
-    required this.firmaPath,
 
   });
 

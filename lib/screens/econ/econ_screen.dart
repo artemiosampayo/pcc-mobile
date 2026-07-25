@@ -12,6 +12,7 @@ import '../ruta/inicio_ruta_screen.dart';
 import '../../services/local/movimiento_local_service.dart';
 import '../../services/sync/movimiento_sync_service.dart';
 import '../../services/device/location_service.dart';
+import '../../widgets/loading_dialog.dart';
 
 class EconScreen extends StatefulWidget {
 
@@ -487,10 +488,10 @@ Padding(
     child: ElevatedButton.icon(
       onPressed: totalEscaneadas > 0 && !confirmandoEcon
           ? () async {
-
+              final currentContext = context;
               final confirmar =
                   await showDialog<bool>(
-                context: context,
+                context: currentContext,
                 builder: (context) {
                   return AlertDialog(
                     title: const Text(
@@ -538,6 +539,12 @@ Padding(
                 setState(() {
                   confirmandoEcon = true;
                 });
+                if (!mounted) return;
+
+                  LoadingDialog.show(
+                    currentContext,
+                    message: 'Confirmando manifiesto...',
+                  );
 
                 final guiasEcon =
                     envios
@@ -640,13 +647,17 @@ Padding(
                   confirmandoEcon = false;
                 });
 
-                ScaffoldMessenger.of(context).showSnackBar(
+                ScaffoldMessenger.of(currentContext).showSnackBar(
                   SnackBar(
                     content: Text(
                       'No fue posible confirmar el ECON: $e',
                     ),
                   ),
                 );
+
+              }finally {
+
+                 LoadingDialog.hide();
 
               }
 

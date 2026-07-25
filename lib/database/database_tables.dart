@@ -51,6 +51,14 @@ class DatabaseTables {
     );
 
     await db.execute(
+      createDevolucionesTable(),
+    );
+
+    await db.execute(
+      createDevolucionEnviosTable(),
+    );
+
+    await db.execute(
       createEntregaEnviosTable(),
     );
 
@@ -362,7 +370,7 @@ static String createEvidenciasTable() {
 
     uuid_evidencia TEXT NOT NULL UNIQUE,
 
-    uuid_entrega TEXT NOT NULL,
+    uuid_referencia TEXT NOT NULL,
 
     uuid_movimiento TEXT NOT NULL,
 
@@ -387,7 +395,7 @@ static String createEvidenciasTable() {
     fecha_sincronizacion TEXT,
 
     UNIQUE(
-      uuid_entrega,
+      uuid_referencia,
       tipo
     )
 
@@ -395,6 +403,52 @@ static String createEvidenciasTable() {
 
   ''';
 
+}
+
+static String createDevolucionEnviosTable()
+{
+  return '''
+    CREATE TABLE devolucion_envios_local(
+
+        id_local INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        uuid_devolucion TEXT NOT NULL,
+
+        id_envio INTEGER NOT NULL,
+
+        uuid_movimiento TEXT NOT NULL,
+
+        UNIQUE(
+            uuid_devolucion,
+            id_envio
+        )
+
+    )
+  ''';
+}
+static String createDevolucionesTable()
+{
+  return '''
+
+    CREATE TABLE devoluciones_local(
+
+        id_devolucion_local INTEGER PRIMARY KEY AUTOINCREMENT,
+
+        uuid_devolucion TEXT NOT NULL UNIQUE,
+
+        id_operacion INTEGER NOT NULL,
+
+        motivo TEXT,
+
+        fecha_devolucion TEXT NOT NULL,
+
+        sincronizado INTEGER DEFAULT 0,
+
+        fecha_sincronizacion TEXT
+
+    )
+
+    ''';
 }
 //============================================================
 // TABLA

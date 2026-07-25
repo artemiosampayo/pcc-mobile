@@ -42,7 +42,7 @@ class DatabaseHelper {
   static const String databaseName =
       'pcc_mobile.db';
 
-  static const int databaseVersion = 8;
+  static const int databaseVersion = 10;
 
   //------------------------------------------------------------
   // Base de datos
@@ -187,6 +187,70 @@ class DatabaseHelper {
 
         );
 
+    }
+
+    //--------------------------------------------------------
+    // Migración
+    // v8 → v9
+    //
+    // Agrega soporte para devoluciones locales.
+    //--------------------------------------------------------
+
+    if (oldVersion < 9) {
+
+      await db.execute(
+        DatabaseTables.createDevolucionesTable(),
+      );
+
+      await db.execute(
+        DatabaseTables.createDevolucionEnviosTable(),
+      );
+
+    }
+
+    if (oldVersion < 10) {
+
+      await db.execute(
+          'ALTER TABLE evidencias_local RENAME TO evidencias_local_old');
+
+      await db.execute(
+          DatabaseTables.createEvidenciasTable());
+
+      await db.execute('''
+          INSERT INTO evidencias_local(
+              uuid_evidencia,
+              uuid_referencia,
+              uuid_movimiento,
+              tipo,
+              descripcion,
+              ruta_archivo,
+              nombre_archivo,
+              mime_type,
+              fecha_creacion,
+              sincronizado,
+              intentos,
+              ultimo_error,
+              fecha_sincronizacion
+          )
+          SELECT
+              uuid_evidencia,
+              uuid_entrega,
+              uuid_movimiento,
+              tipo,
+              descripcion,
+              ruta_archivo,
+              nombre_archivo,
+              mime_type,
+              fecha_creacion,
+              sincronizado,
+              intentos,
+              ultimo_error,
+              fecha_sincronizacion
+          FROM evidencias_local_old;
+      ''');
+
+      await db.execute(
+          'DROP TABLE evidencias_local_old');
     }
 
   }
