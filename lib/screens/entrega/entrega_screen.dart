@@ -46,6 +46,7 @@ import '../../services/sync/evidencia_sync_service.dart';
 
 import '../../services/device/location_service.dart';
 import '../../widgets/loading_dialog.dart';
+import '../../services/local/envio_local_service.dart';
 
 
 class EntregaScreen extends StatefulWidget {
@@ -331,7 +332,18 @@ Future<void> realizarEntrega() async {
 
         longitud: ubicacion.longitud,
       );
+final enviosActualizados =
+    await EnvioLocalService()
+        .obtenerEnvios();
 
+debugPrint("=================================");
+debugPrint("ESTADO LOCAL DESPUÉS DE LA ENTREGA");
+
+for (final envio in enviosActualizados) {
+  debugPrint(
+    '${envio['numero_guia']} -> ${envio['estatus_local']}',
+  );
+}
       //------------------------------------------------------
       // Obtener sesión actual
       //------------------------------------------------------
@@ -407,10 +419,17 @@ Future<void> realizarEntrega() async {
         return;
       }
 
-      Navigator.pop(
-        context,
-        true,
-      );
+     debugPrint("POP ENTREGA");
+
+      LoadingDialog.hide();
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop(true);
+
+      return;
 
     } catch (e) {
 
@@ -438,7 +457,7 @@ Future<void> realizarEntrega() async {
 
     }finally {
 
-      LoadingDialog.hide();
+       debugPrint("FINALLY");
 
     }
 

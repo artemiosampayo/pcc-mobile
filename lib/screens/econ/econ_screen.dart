@@ -623,13 +623,15 @@ Padding(
                   OperationState.econConfirmado,
                 );
 
+                LoadingDialog.hide();
+
                 if (!context.mounted) return;
 
                 print(
                   'ECON CONFIRMADO - Guías no utilizadas eliminadas: '
                   '$guiasEliminadas',
                 );
-
+                print("ANTES DEL NAVIGATOR");
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -637,6 +639,9 @@ Padding(
                         const InicioRutaScreen(),
                   ),
                 );
+
+                print("DESPUES DEL NAVIGATOR");
+
               } catch (e) {
 
                 if (!context.mounted) {
@@ -657,7 +662,7 @@ Padding(
 
               }finally {
 
-                 LoadingDialog.hide();
+                 
 
               }
 

@@ -333,17 +333,18 @@ class _InicioRutaScreenState
                               .cambiarEstado(
                             OperationState.enRuta,
                           );
-
+                           LoadingDialog.hide();
                           if (!mounted) {
                             return;
                           }
-
+                          print("ANTES DEL NAVIGATOR");
                           Navigator.of(currentContext).pushReplacement(
                             MaterialPageRoute(
                               builder: (context) =>
                                   const MiRutaScreen(),
                             ),
                           );
+                           print("DESPUES DEL NAVIGATOR");
 
                         }catch (e) {
                           if (!mounted) return;
@@ -360,7 +361,7 @@ class _InicioRutaScreenState
                             ),
                           );
                         } finally {
-                          LoadingDialog.hide();
+                          
                         }
 
                       },

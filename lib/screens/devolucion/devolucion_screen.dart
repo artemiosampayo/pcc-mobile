@@ -44,6 +44,8 @@ import '../../services/sync/movimiento_sync_service.dart';
 
 import '../../widgets/loading_dialog.dart';
 
+import '../../services/local/envio_local_service.dart';
+
 class DevolucionScreen extends StatefulWidget {
 
   const DevolucionScreen({
@@ -247,6 +249,18 @@ class _DevolucionScreenState
             longitud: location.longitud,
 
           );
+          final enviosActualizados =
+              await EnvioLocalService()
+                  .obtenerEnvios();
+
+          debugPrint("=================================");
+          debugPrint("ESTADO LOCAL DESPUÉS DE LA DEVOLUCIÓN");
+
+          for (final envio in enviosActualizados) {
+            debugPrint(
+              "${envio['numero_guia']} -> ${envio['estatus_local']}",
+            );
+          }
 
           if (!mounted) {
             return;
@@ -280,12 +294,21 @@ class _DevolucionScreenState
             return;
           }
 
-          Navigator.pop(
-            context,
-            true,
-          );
+          debugPrint("CERRANDO LOADING DEVOLUCION");
 
-    } catch (e) {
+          LoadingDialog.hide();
+
+          if (!mounted) {
+            return;
+          }
+
+          debugPrint("POP DEVOLUCION");
+
+          Navigator.of(context).pop(true);
+
+          return;
+          
+     } catch (e) {
 
       if (!mounted) {
         return;
@@ -300,14 +323,7 @@ class _DevolucionScreenState
       );
 
     } finally {
-      LoadingDialog.hide();
-      if (mounted) {
-
-        setState(() {
-          realizandoDevolucion = false;
-        });
-
-      }
+      debugPrint("FINALLY DEVOLUCION");
 
     }
 

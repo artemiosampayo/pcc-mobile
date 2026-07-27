@@ -16,7 +16,7 @@ class PCCLogo extends StatelessWidget {
 
     return Image.asset(
 
-      'assets/images/logo_pcc.png',
+      'assets/images/logo_pcc2.png',
 
       width: width,
 

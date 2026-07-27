@@ -41,6 +41,7 @@ import '../scanner/barcode_scanner_screen.dart';
 import '../../services/device/device_feedback_service.dart';
 import '../entrega/entrega_screen.dart';
 import '../devolucion/devolucion_screen.dart';
+import '../configuracion_ruta/configuracion_ruta_screen.dart';
 
 class MiRutaScreen extends StatefulWidget {
 
@@ -56,6 +57,81 @@ class MiRutaScreen extends StatefulWidget {
 
 class _MiRutaScreenState
     extends State<MiRutaScreen> {
+
+        //----------------------------------------------------------
+  // Panel Finalizar Ruta
+  //----------------------------------------------------------
+
+  Widget _buildPanelFinalizarRuta() {
+
+    return Card(
+
+      elevation: 3,
+
+      child: Padding(
+
+        padding: const EdgeInsets.all(16),
+
+        child: Column(
+
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+
+          children: [
+
+            const Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 42,
+            ),
+
+            const SizedBox(height: 12),
+
+            const Text(
+
+              'Ruta completada',
+
+              textAlign: TextAlign.center,
+
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+
+            ),
+
+            const SizedBox(height: 6),
+
+            const Text(
+
+              'Todas las guías fueron procesadas correctamente.',
+
+              textAlign: TextAlign.center,
+
+            ),
+
+            const SizedBox(height: 16),
+
+            FilledButton.icon(
+
+              onPressed: finalizarRuta,
+
+              icon: const Icon(Icons.flag),
+
+              label: const Text(
+                'FINALIZAR RUTA',
+              ),
+
+            ),
+
+          ],
+
+        ),
+
+      ),
+
+    );
+
+  }
 
   //----------------------------------------------------------
   // Dependencias
@@ -98,7 +174,8 @@ class _MiRutaScreenState
   //----------------------------------------------------------
 
   Future<void> cargarDatos() async {
-
+    debugPrint("==========================");
+  debugPrint("CARGANDO MI RUTA");
     final operacionActual =
         await WorkflowManager.instance
             .obtenerOperacion();
@@ -106,7 +183,11 @@ class _MiRutaScreenState
     final guiasRuta =
         await envioLocalService
             .obtenerEnvios();
-
+     for (final guia in guiasRuta) {
+    debugPrint(
+      "${guia['numero_guia']} -> ${guia['estatus_local']}",
+    );
+  }
     if (!mounted) {
       return;
     }
@@ -368,6 +449,7 @@ Future<void> iniciarDevolucion() async {
   //--------------------------------------------------------
   // Abrir pantalla de devolución
   //--------------------------------------------------------
+debugPrint("1. ANTES DEL PUSH");
 
   final devolucionRealizada =
       await Navigator.push<bool>(
@@ -378,12 +460,14 @@ Future<void> iniciarDevolucion() async {
       ),
     ),
   );
-
+debugPrint("2. REGRESÉ DEL PUSH");
+debugPrint("3. Resultado = $devolucionRealizada");
   //--------------------------------------------------------
   // Canceló la devolución
   //--------------------------------------------------------
 
   if (devolucionRealizada != true) {
+    debugPrint("4. CANCELADA");
     return;
   }
 
@@ -396,9 +480,9 @@ Future<void> iniciarDevolucion() async {
   //--------------------------------------------------------
   // Recargar información
   //--------------------------------------------------------
-
+debugPrint("5. VOY A CARGAR DATOS");
   await cargarDatos();
-
+debugPrint("6. CARGA TERMINADA");
   //--------------------------------------------------------
   // Validar contexto
   //--------------------------------------------------------
@@ -414,6 +498,129 @@ Future<void> iniciarDevolucion() async {
   setState(() {
     filtroSeleccionado = 'DEVOLUCIONES';
   });
+
+}
+
+//----------------------------------------------------------
+// Finalizar Ruta
+//----------------------------------------------------------
+
+Future<void> finalizarRuta() async {
+
+  final confirmar = await showDialog<bool>(
+
+    context: context,
+
+    barrierDismissible: false,
+
+    builder: (context) {
+
+      return AlertDialog(
+
+        title: const Text(
+          'Finalizar Ruta',
+        ),
+
+        content: const Text(
+          '¿Desea finalizar la ruta?\n\n'
+          'La operación se cerrará en este dispositivo '
+          'y podrá iniciar una nueva ruta.',
+        ),
+
+        actions: [
+
+          TextButton(
+
+            onPressed: () {
+
+              Navigator.pop(
+                context,
+                false,
+              );
+
+            },
+
+            child: const Text(
+              'Cancelar',
+            ),
+
+          ),
+
+          FilledButton(
+
+            onPressed: () {
+
+              Navigator.pop(
+                context,
+                true,
+              );
+
+            },
+
+            child: const Text(
+              'Finalizar',
+            ),
+
+          ),
+
+        ],
+
+      );
+
+    },
+
+  );
+
+  if (confirmar != true) {
+    return;
+  }
+
+  try {
+
+    await WorkflowManager.instance
+        .finalizarOperacion();
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+
+      const SnackBar(
+
+        content: Text(
+          'Ruta finalizada correctamente.',
+        ),
+
+      ),
+
+    );
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => const ConfiguracionRutaScreen(),
+      ),
+      (route) => false,
+    );
+  } catch (e) {
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+
+      SnackBar(
+
+        content: Text(
+          'No fue posible finalizar la ruta.\n$e',
+        ),
+
+      ),
+
+    );
+
+  }
 
 }
 
@@ -685,7 +892,25 @@ Future<void> iniciarDevolucion() async {
                                     ),
 
                         ),
+                                                //--------------------------------------------------
+                        // Panel Finalizar Ruta
+                        //--------------------------------------------------
 
+                        if (totalPendientes == 0 &&
+                            envios.isNotEmpty)
+
+                          Padding(
+
+                            padding: const EdgeInsets.fromLTRB(
+                              16,
+                              0,
+                              16,
+                              16,
+                            ),
+
+                            child: _buildPanelFinalizarRuta(),
+
+                          ),
                       ],
 
                     ),
@@ -761,7 +986,7 @@ bottomNavigationBar:
                                     //------------------------------------------------
                                     // Abrir flujo de entrega
                                     //------------------------------------------------
-
+                                    debugPrint("ANTES DEL PUSH");
                                     final entregaRealizada =
                                         await Navigator.push<bool>(
                                       context,
@@ -773,6 +998,8 @@ bottomNavigationBar:
                                         ),
                                       ),
                                     );
+                                    debugPrint("DESPUÉS DEL PUSH");
+debugPrint("Resultado: $entregaRealizada");
 
                                     //------------------------------------------------
                                     // Entrega cancelada

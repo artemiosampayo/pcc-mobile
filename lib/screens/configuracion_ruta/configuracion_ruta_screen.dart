@@ -604,6 +604,7 @@ async {
     setState(() {
 
       idOperacion = 0;
+      workflow = null;
 
     });
 
@@ -999,7 +1000,7 @@ Widget build(
   height: 30,
 ),
 
-if(idOperacion == 0)
+if(workflow == null)
 
   SizedBox(
 
@@ -1068,7 +1069,7 @@ else
 
                 child: Text(
 
-                  "Operación #$idOperacion activa",
+                  "Operación #${workflow!.idOperacion} activa",
 
                   style:
                       const TextStyle(
@@ -1113,7 +1114,7 @@ else
           label:
               Text(
 
-            "FINALIZAR OPERACIÓN #$idOperacion",
+            "FINALIZAR OPERACIÓN #${workflow!.idOperacion}",
 
             style:
                 const TextStyle(
