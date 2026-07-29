@@ -76,6 +76,8 @@ class EntregaLocalService {
 
   Future<EntregaLocalResult> realizarEntrega({
 
+    required String uuidOperacion,
+
     required int idOperacion,
 
     required List<Map<String, dynamic>> envios,
@@ -229,6 +231,9 @@ class EntregaLocalService {
               'uuid_entrega':
                   uuidEntrega,
 
+              'uuid_operacion':
+                  uuidOperacion,
+
               'id_operacion':
                   idOperacion,
 
@@ -273,6 +278,9 @@ class EntregaLocalService {
               {
                 'uuid_sincronizacion':
                     uuidMovimiento,
+                    
+                'uuid_operacion':
+                    uuidOperacion,
 
                 'id_operacion':
                     idOperacion,

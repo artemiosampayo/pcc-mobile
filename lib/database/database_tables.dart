@@ -232,6 +232,8 @@ static String createMovimientosTable() {
 
     uuid_sincronizacion TEXT NOT NULL UNIQUE,
 
+    uuid_operacion TEXT NOT NULL,
+
     id_operacion INTEGER NOT NULL,
 
     id_envio INTEGER NOT NULL,
@@ -296,6 +298,8 @@ static String createEntregasTable() {
     id_entrega_local INTEGER PRIMARY KEY AUTOINCREMENT,
 
     uuid_entrega TEXT NOT NULL UNIQUE,
+
+    uuid_operacion TEXT NOT NULL,
 
     id_operacion INTEGER NOT NULL,
 
@@ -435,6 +439,8 @@ static String createDevolucionesTable()
         id_devolucion_local INTEGER PRIMARY KEY AUTOINCREMENT,
 
         uuid_devolucion TEXT NOT NULL UNIQUE,
+
+        uuid_operacion TEXT NOT NULL,
 
         id_operacion INTEGER NOT NULL,
 

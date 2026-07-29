@@ -46,6 +46,8 @@ import '../../widgets/loading_dialog.dart';
 
 import '../../services/local/envio_local_service.dart';
 
+import 'package:uuid/uuid.dart';
+
 class DevolucionScreen extends StatefulWidget {
 
   const DevolucionScreen({
@@ -226,11 +228,13 @@ class _DevolucionScreenState
           //------------------------------------------------------
           // Registrar devolución local
           //------------------------------------------------------
-
+          final uuidOperacion = const Uuid().v4();
           final resultado =
               await devolucionLocalService.realizarDevolucion(
 
             idOperacion: workflow.idOperacion!,
+
+             uuidOperacion: uuidOperacion,
 
             envios: widget.envios,
 

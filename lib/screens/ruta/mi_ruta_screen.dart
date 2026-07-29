@@ -36,6 +36,8 @@ import 'package:flutter/material.dart';
 import '../../core/workflow/workflow_manager.dart';
 import '../../models/workflow_model.dart';
 import '../../services/local/envio_local_service.dart';
+import '../../services/local/session_local_service.dart';
+import '../../services/api/mobile_service.dart';
 import '../../widgets/operation_header.dart';
 import '../scanner/barcode_scanner_screen.dart';
 import '../../services/device/device_feedback_service.dart';
@@ -139,6 +141,9 @@ class _MiRutaScreenState
 
   final EnvioLocalService envioLocalService =
       EnvioLocalService();
+
+  final MobileService mobileService =
+    MobileService();
 
   //----------------------------------------------------------
   // Estado
@@ -523,8 +528,8 @@ Future<void> finalizarRuta() async {
 
         content: const Text(
           '¿Desea finalizar la ruta?\n\n'
-          'La operación se cerrará en este dispositivo '
-          'y podrá iniciar una nueva ruta.',
+          'La operación se cerrará en PCC y en este dispositivo.\n\n'
+          'Después podrá iniciar una nueva ruta.',
         ),
 
         actions: [
@@ -576,6 +581,59 @@ Future<void> finalizarRuta() async {
   }
 
   try {
+
+    //--------------------------------------------------------
+    // Obtener operación activa
+    //--------------------------------------------------------
+
+    final operacion =
+        await WorkflowManager.instance
+            .obtenerOperacion();
+
+    if (operacion == null) {
+      throw Exception(
+          'No existe una operación activa.');
+    }
+
+    if (operacion.idOperacion == null) {
+      throw Exception(
+          'La operación activa no tiene un id válido.');
+    }
+    //--------------------------------------------------------
+    // Obtener sesión
+    //--------------------------------------------------------
+
+    final sesion =
+        await SessionLocalService.instance
+            .obtenerSesion();
+
+    if (sesion == null) {
+      throw Exception(
+          'No existe una sesión activa.');
+    }
+
+    debugPrint("=================================");
+    debugPrint("FINALIZANDO OPERACIÓN");
+    debugPrint(
+        "ID Operación: ${operacion.idOperacion}");
+
+    debugPrint("Enviando cierre al servidor...");
+
+    //--------------------------------------------------------
+    // Cerrar operación en PCC
+    //--------------------------------------------------------
+
+   
+    final idOperacion =
+    operacion.idOperacion!;
+
+    await mobileService.cerrarOperacion(
+      token: sesion.token,
+      idOperacion: idOperacion,
+    );
+
+    debugPrint(
+        "OPERACIÓN CERRADA EN SERVIDOR");
 
     await WorkflowManager.instance
         .finalizarOperacion();

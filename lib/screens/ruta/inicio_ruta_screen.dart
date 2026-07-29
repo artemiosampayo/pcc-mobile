@@ -33,6 +33,7 @@ import '../../core/enums/operation_state.dart';
 import 'mi_ruta_screen.dart';
 import '../../services/device/location_service.dart';
 import '../../widgets/loading_dialog.dart';
+import 'package:uuid/uuid.dart';
 
 class InicioRutaScreen extends StatefulWidget {
 
@@ -282,11 +283,12 @@ class _InicioRutaScreenState
                           //----------------------------------------------------------
                           // Crear movimientos EN_RUTA
                           //----------------------------------------------------------
-
+                          final uuidOperacion = const Uuid().v4();
                           final movimientosCreados =
                               await movimientoLocalService
                                   .crearLoteEnRuta(
                             idOperacion: operacionActual.idOperacion!,
+                            uuidOperacion: uuidOperacion,
                             envios: envios,
                             idUbicacion: operacionActual.idUbicacion!,
                             idEmpleado: operacionActual.idOperador!,

@@ -336,6 +336,9 @@ print(response.data);
         'uuid_sincronizacion':
             movimiento['uuid_sincronizacion'],
 
+        'uuid_operacion':
+            movimiento['uuid_operacion'],
+
         'fecha_evento':
             movimiento['fecha_evento'],
 

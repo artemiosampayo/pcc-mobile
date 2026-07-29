@@ -67,6 +67,8 @@ class MovimientoLocalService {
 
     required int idOperacion,
 
+    required String uuidOperacion,
+
     required int idEnvio,
 
     required String codigoEstado,
@@ -103,6 +105,9 @@ class MovimientoLocalService {
 
         'uuid_sincronizacion':
             uuidSincronizacion,
+        
+        'uuid_operacion':
+            uuidOperacion,
 
         'id_operacion':
             idOperacion,
@@ -174,6 +179,8 @@ class MovimientoLocalService {
 
 Future<int> crearLoteEcon({
 
+  required String uuidOperacion,
+
   required int idOperacion,
 
   required List<Map<String, dynamic>> envios,
@@ -212,6 +219,9 @@ Future<int> crearLoteEcon({
 
             'uuid_sincronizacion':
                 uuidSincronizacion,
+
+            'uuid_operacion':
+                uuidOperacion,
 
             'id_operacion':
                 idOperacion,
@@ -364,6 +374,8 @@ Future<int> marcarEstadoOperacionSincronizado({
 
   Future<int> crearLoteEnRuta({
 
+    required String uuidOperacion,
+
     required int idOperacion,
 
     required List<Map<String, dynamic>> envios,
@@ -373,7 +385,7 @@ Future<int> marcarEstadoOperacionSincronizado({
     required int idEmpleado,
 
     required int idRuta,
-    
+
     double? latitud,
 
     double? longitud,
@@ -402,6 +414,9 @@ Future<int> marcarEstadoOperacionSincronizado({
 
               'uuid_sincronizacion':
                   uuidSincronizacion,
+
+              'uuid_operacion':
+                  uuidOperacion,
 
               'id_operacion':
                   idOperacion,

@@ -42,7 +42,7 @@ class DatabaseHelper {
   static const String databaseName =
       'pcc_mobile.db';
 
-  static const int databaseVersion = 10;
+  static const int databaseVersion = 11;
 
   //------------------------------------------------------------
   // Base de datos
@@ -251,6 +251,51 @@ class DatabaseHelper {
 
       await db.execute(
           'DROP TABLE evidencias_local_old');
+    }
+
+    //--------------------------------------------------------
+    // Migración
+    // v10 → v11
+    //
+    // Agrega uuid_operacion para soportar
+    // el Centro de Monitoreo Operativo.
+    //--------------------------------------------------------
+
+    if (oldVersion < 11) {
+
+      //------------------------------------------------------
+      // movimientos_local
+      //------------------------------------------------------
+
+      await db.execute(
+        '''
+        ALTER TABLE movimientos_local
+        ADD COLUMN uuid_operacion TEXT
+        '''
+      );
+
+      //------------------------------------------------------
+      // entregas_local
+      //------------------------------------------------------
+
+      await db.execute(
+        '''
+        ALTER TABLE entregas_local
+        ADD COLUMN uuid_operacion TEXT
+        '''
+      );
+
+      //------------------------------------------------------
+      // devoluciones_local
+      //------------------------------------------------------
+
+      await db.execute(
+        '''
+        ALTER TABLE devoluciones_local
+        ADD COLUMN uuid_operacion TEXT
+        '''
+      );
+
     }
 
   }

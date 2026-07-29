@@ -13,6 +13,7 @@ import '../../services/local/movimiento_local_service.dart';
 import '../../services/sync/movimiento_sync_service.dart';
 import '../../services/device/location_service.dart';
 import '../../widgets/loading_dialog.dart';
+import 'package:uuid/uuid.dart';
 
 class EconScreen extends StatefulWidget {
 
@@ -100,14 +101,27 @@ Future<void> cargar() async {
 
       // Estos deben quedarse aquí porque
       // guiasServidor solamente existe dentro del try.
-      print('ECON - GUÍAS RECIBIDAS API: ${guiasServidor.length}');
-      print('ECON - GUÍAS API: $guiasServidor');
+      debugPrint('====================================');
+      debugPrint('GUIAS RECIBIDAS DEL API');
+      debugPrint('TOTAL: ${guiasServidor.length}');
+      debugPrint('====================================');
+
+      for (final guia in guiasServidor) {
+        debugPrint(guia.toString());
+      }
+
+      debugPrint('====================================');
 
       final nuevasGuias =
           await service
               .sincronizarNuevasGuias(
         guiasServidor,
       );
+
+      if (guiasServidor.isNotEmpty) {
+  debugPrint('PRIMER OBJETO DEL API');
+  debugPrint(guiasServidor.first.toString());
+}
 
       print(
         'ECON - NUEVAS GUÍAS INSERTADAS SQLITE: '
@@ -576,10 +590,11 @@ Padding(
                 if (!ubicacion.success) {
                   throw Exception(ubicacion.mensaje);
                 }
-
+                final uuidOperacion = const Uuid().v4();
                 final movimientosCreados =
                     await movimientoService.crearLoteEcon(
                   idOperacion: operacionActual.idOperacion!,
+                  uuidOperacion: uuidOperacion,
                   envios: guiasEcon,
                   idUbicacion: operacionActual.idUbicacion!,
                   idEmpleado: operacionActual.idOperador!,

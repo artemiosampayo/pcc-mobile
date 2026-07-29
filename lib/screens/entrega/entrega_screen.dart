@@ -47,6 +47,7 @@ import '../../services/sync/evidencia_sync_service.dart';
 import '../../services/device/location_service.dart';
 import '../../widgets/loading_dialog.dart';
 import '../../services/local/envio_local_service.dart';
+import 'package:uuid/uuid.dart';
 
 
 class EntregaScreen extends StatefulWidget {
@@ -300,12 +301,14 @@ Future<void> realizarEntrega() async {
       //------------------------------------------------------
       // Registrar entrega local
       //------------------------------------------------------
-
+      final uuidOperacion = const Uuid().v4();
       final resultado =
           await entregaLocalService
               .realizarEntrega(
         idOperacion:
             operacionActual.idOperacion!,
+
+        uuidOperacion: uuidOperacion,
 
         envios:
             widget.envios,

@@ -75,6 +75,8 @@ class DevolucionLocalService {
 
   Future<DevolucionLocalResult> realizarDevolucion({
 
+    required String uuidOperacion,
+
     required int idOperacion,
 
     required List<Map<String, dynamic>> envios,
@@ -202,6 +204,9 @@ class DevolucionLocalService {
               'uuid_devolucion':
                   uuidDevolucion,
 
+              'uuid_operacion':
+                  uuidOperacion,
+
               'id_operacion':
                   idOperacion,
 
@@ -246,6 +251,9 @@ class DevolucionLocalService {
               {
                 'uuid_sincronizacion':
                     uuidMovimiento,
+
+                'uuid_operacion':
+                    uuidOperacion,
 
                 'id_operacion':
                     idOperacion,
