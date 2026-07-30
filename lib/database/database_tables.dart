@@ -444,7 +444,9 @@ static String createDevolucionesTable()
 
         id_operacion INTEGER NOT NULL,
 
-        motivo TEXT,
+        id_motivo_devolucion INTEGER NOT NULL,
+
+        comentarios TEXT NULL,
 
         fecha_devolucion TEXT NOT NULL,
 

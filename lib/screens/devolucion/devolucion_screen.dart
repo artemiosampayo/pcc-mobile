@@ -48,6 +48,8 @@ import '../../services/local/envio_local_service.dart';
 
 import 'package:uuid/uuid.dart';
 
+import '../../services/local/catalogo_devolucion_local_service.dart';
+
 class DevolucionScreen extends StatefulWidget {
 
   const DevolucionScreen({
@@ -76,6 +78,10 @@ class _DevolucionScreenState
   final DevolucionLocalService devolucionLocalService =
       DevolucionLocalService.instance;
 
+  final CatalogoDevolucionLocalService
+    catalogoService =
+        CatalogoDevolucionLocalService.instance;
+
   //----------------------------------------------------------
   // Estado
   //----------------------------------------------------------
@@ -96,12 +102,43 @@ class _DevolucionScreenState
   //----------------------------------------------------------
 
   final TextEditingController
-      motivoController =
+      comentariosController =
           TextEditingController();
+
+  List<Map<String, dynamic>>
+      catalogoMotivos = [];
+
+  int? idMotivoSeleccionado;
 
   final GlobalKey<FormState>
       formKey =
           GlobalKey<FormState>();
+
+  
+  //----------------------------------------------------------
+  // Cargar catalogo devoluciones
+  //----------------------------------------------------------
+  Future<void> cargarCatalogo() async {
+
+    catalogoMotivos =
+        await catalogoService
+            .obtenerCatalogo();
+
+    if (mounted) {
+
+      setState(() {});
+
+    }
+
+  }
+  @override
+  void initState() {
+
+    super.initState();
+
+    cargarCatalogo();
+
+  }
 
   //----------------------------------------------------------
   // Tomar fotografía
@@ -147,6 +184,14 @@ class _DevolucionScreenState
     //--------------------------------------------------------
 
     if (!formKey.currentState!.validate()) {
+      return;
+    }
+
+    //--------------------------------------------------------
+    // Validar motivo seleccionado
+    //--------------------------------------------------------
+
+    if (idMotivoSeleccionado == null) {
       return;
     }
 
@@ -240,7 +285,9 @@ class _DevolucionScreenState
 
             fotoOrigenPath: fotoEvidencia!.path,
 
-            motivo: motivoController.text,
+            idMotivoDevolucion: idMotivoSeleccionado!,
+
+            comentarios: comentariosController.text.trim(),
 
             idUbicacion: session.idUbicacion,
 
@@ -340,7 +387,7 @@ class _DevolucionScreenState
   @override
   void dispose() {
 
-    motivoController.dispose();
+    comentariosController.dispose();
 
     super.dispose();
 
@@ -495,35 +542,98 @@ class _DevolucionScreenState
                 ),
                 child: Form(
                   key: formKey,
-                  child: TextFormField(
-                    controller:
-                        motivoController,
-                    textCapitalization:
-                        TextCapitalization.sentences,
-                    maxLines: 3,
-                    decoration:
-                        const InputDecoration(
-                      labelText:
-                          'Motivo',
-                      hintText:
-                          'Describa el motivo de la devolución',
-                      prefixIcon:
-                          Icon(Icons.edit_note),
-                      border:
-                          OutlineInputBorder(),
-                    ),
-                    validator: (value) {
+                  child: Column(
+                    children: [
 
-                      if (
-                          value == null ||
-                          value.trim().isEmpty
-                      ) {
-                        return 'Ingrese el motivo de la devolución.';
-                      }
+                      //--------------------------------------------------------
+                      // Motivo de devolución
+                      //--------------------------------------------------------
 
-                      return null;
+                      DropdownButtonFormField<int>(
+                        value: idMotivoSeleccionado,
+                        decoration: const InputDecoration(
+                          labelText: 'Motivo',
+                          prefixIcon: Icon(
+                            Icons.assignment_return,
+                          ),
+                          border: OutlineInputBorder(),
+                        ),
 
-                    },
+                        items: catalogoMotivos.map(
+                          (motivo) {
+
+                            return DropdownMenuItem<int>(
+                              value: motivo['id_devolucion'],
+                              child: Text(
+                                motivo['descripcion'],
+                              ),
+                            );
+
+                          },
+                        ).toList(),
+
+                        onChanged: (value) {
+
+                          setState(() {
+
+                            idMotivoSeleccionado = value;
+
+                          });
+
+                        },
+
+                        validator: (value) {
+
+                          if (value == null) {
+
+                            return 'Seleccione un motivo de devolución.';
+
+                          }
+
+                          return null;
+
+                        },
+
+                      ),
+
+                      const SizedBox(
+                        height: 16,
+                      ),
+
+                      //--------------------------------------------------------
+                      // Observaciones
+                      //--------------------------------------------------------
+
+                      TextFormField(
+
+                        controller:
+                            comentariosController,
+
+                        textCapitalization:
+                            TextCapitalization.sentences,
+
+                        maxLines: 3,
+
+                        decoration:
+                            const InputDecoration(
+
+                          labelText:
+                              'Observaciones',
+
+                          hintText:
+                              'Comentarios adicionales (opcional)',
+
+                          prefixIcon:
+                              Icon(Icons.edit_note),
+
+                          border:
+                              OutlineInputBorder(),
+
+                        ),
+
+                      ),
+
+                    ],
                   ),
                 ),
               ),

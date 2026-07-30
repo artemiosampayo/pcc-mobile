@@ -83,7 +83,9 @@ class DevolucionLocalService {
 
     required String fotoOrigenPath,
 
-    required String motivo,
+    required int idMotivoDevolucion,
+
+    String? comentarios,
 
     required int idUbicacion,
 
@@ -210,8 +212,11 @@ class DevolucionLocalService {
               'id_operacion':
                   idOperacion,
 
-              'motivo':
-                  motivo.trim(),
+              'id_motivo_devolucion':
+                  idMotivoDevolucion,
+
+              'comentarios':
+                  comentarios?.trim(),
 
               'fecha_devolucion':
                   fechaDevolucion,
@@ -268,7 +273,7 @@ class DevolucionLocalService {
                     8,
 
                 'descripcion':
-                    'Devolución realizada. Motivo: ${motivo.trim()}',
+                   'Devolución realizada.',
 
                 'id_ubicacion':
                     idUbicacion,
@@ -366,7 +371,8 @@ class DevolucionLocalService {
               'tipo':
                   'FOTO',
 
-              'descripcion': 'Devolución realizada. Motivo: ${motivo.trim()}',
+              'descripcion':
+                 'Fotografía de devolución',
 
               'ruta_archivo':
                   fotoPath,
@@ -432,6 +438,48 @@ class DevolucionLocalService {
 
     }
 
+  }
+
+  //----------------------------------------------------------
+// Obtener información de devolución por movimiento
+//----------------------------------------------------------
+
+Future<Map<String, dynamic>?> obtenerPorUuidMovimiento(
+    String uuidMovimiento,
+  ) async {
+
+    final db = await _db();
+    
+
+    final resultado = await db.rawQuery(
+      '''
+      SELECT
+
+          d.uuid_devolucion,
+          d.uuid_operacion,
+          d.id_motivo_devolucion,
+          d.comentarios
+
+      FROM devoluciones_local d
+
+      INNER JOIN devolucion_envios_local r
+
+          ON r.uuid_devolucion = d.uuid_devolucion
+
+      WHERE r.uuid_movimiento = ?
+
+      LIMIT 1
+      ''',
+      [
+        uuidMovimiento,
+      ],
+    );
+
+    if (resultado.isEmpty) {
+      return null;
+    }
+
+    return resultado.first;
   }
 
 }

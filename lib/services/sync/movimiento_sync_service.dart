@@ -27,6 +27,8 @@ import '../api/mobile_service.dart';
 import '../local/movimiento_local_service.dart';
 import 'package:flutter/foundation.dart';
 import '../local/movimiento_remoto_local_service.dart';
+import '../local/devolucion_local_service.dart';
+import '../local/catalogo_devolucion_local_service.dart';
 
 class MovimientoSyncService {
 
@@ -71,10 +73,110 @@ class MovimientoSyncService {
 
       try {
 
+        //------------------------------------------------------
+        // Construir movimiento a enviar
+        //------------------------------------------------------
+
+        final movimientoEnviar =
+            Map<String, dynamic>.from(movimiento);
+
+        //------------------------------------------------------
+        // Enriquecer descripción de devoluciones
+        //------------------------------------------------------
+
+        if (movimiento['codigo_estado'] == 'DEVOLUCION') {
+
+          final devolucion =
+              await DevolucionLocalService.instance
+                  .obtenerPorUuidMovimiento(
+                      uuid,
+                  );
+
+          if (devolucion == null) {
+            throw Exception(
+              'No se encontró la información de la devolución.',
+            );
+          }
+
+          final idMotivoTexto =
+              devolucion['id_motivo_devolucion']?.toString();
+
+          if (idMotivoTexto == null || idMotivoTexto.isEmpty) {
+            throw Exception(
+              'La devolución no contiene un motivo válido.',
+            );
+          }
+
+          final idMotivo = int.tryParse(idMotivoTexto);
+
+          if (idMotivo == null) {
+            throw Exception(
+              'El motivo de devolución "$idMotivoTexto" no es válido.',
+            );
+          }
+
+
+          final catalogo =
+              await CatalogoDevolucionLocalService.instance
+                  .obtenerPorId(
+                      idMotivo,
+                  );
+
+          if (catalogo == null) {
+            throw Exception(
+              'No se encontró el motivo de devolución $idMotivo.',
+            );
+          }
+          
+
+          final comentarios =
+              (devolucion['comentarios'] ?? '')
+                  .toString()
+                  .trim();
+
+          final partes = <String>[];
+
+          final codigo =
+              (catalogo['codigo'] ?? '')
+                  .toString()
+                  .trim();
+
+          final descripcionCatalogo =
+              (catalogo['descripcion'] ?? '')
+                  .toString()
+                  .trim();
+
+          if (codigo.isNotEmpty) {
+            partes.add(codigo);
+          }
+
+          if (descripcionCatalogo.isNotEmpty) {
+            partes.add(descripcionCatalogo);
+          }
+
+          if (comentarios.isNotEmpty) {
+            partes.add(comentarios);
+          }
+
+          movimientoEnviar['descripcion'] =
+              partes.join(' | ');
+
+          debugPrint(
+            'SYNC DEVOLUCION [$uuid] -> ${movimientoEnviar['descripcion']}',
+          );
+                    
+          
+          
+        }
+
+        //------------------------------------------------------
+        // Enviar movimiento
+        //------------------------------------------------------
+
         final response =
             await _mobileService.registrarMovimiento(
-              token: token,
-              movimiento: movimiento,
+                token: token,
+                movimiento: movimientoEnviar,
             );
 
         if (response.success) {
