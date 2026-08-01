@@ -108,6 +108,8 @@ class DatabaseTables {
 
       codigo_postal TEXT,
 
+      telefono TEXT,
+
       numero_caja INTEGER,
 
       total_caja INTEGER,

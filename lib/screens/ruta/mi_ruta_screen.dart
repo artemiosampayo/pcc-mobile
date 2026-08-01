@@ -44,6 +44,7 @@ import '../../services/device/device_feedback_service.dart';
 import '../entrega/entrega_screen.dart';
 import '../devolucion/devolucion_screen.dart';
 import '../configuracion_ruta/configuracion_ruta_screen.dart';
+import 'detalle_guia_screen.dart';
 
 class MiRutaScreen extends StatefulWidget {
 
@@ -1328,11 +1329,26 @@ class _GuiaRutaCard extends StatelessWidget {
 
                 IconButton(
                   onPressed: () {
-                    // Próximo bloque:
-                    // abrir detalle de la guía.
+
+                    Navigator.push(
+
+                      context,
+
+                      MaterialPageRoute(
+
+                        builder: (context) => DetalleGuiaScreen(
+
+                          guia: envio,
+
+                        ),
+
+                      ),
+
+                    );
+
                   },
                   icon: const Icon(
-                    Icons.chevron_right,
+                    Icons.visibility_outlined,
                   ),
                 ),
 

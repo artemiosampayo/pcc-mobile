@@ -42,7 +42,7 @@ class DatabaseHelper {
   static const String databaseName =
       'pcc_mobile.db';
 
-  static const int databaseVersion = 12;
+  static const int databaseVersion = 13;
 
   //------------------------------------------------------------
   // Base de datos
@@ -327,6 +327,32 @@ class DatabaseHelper {
         '''
         ALTER TABLE devoluciones_local
         ADD COLUMN comentarios TEXT
+        ''',
+      );
+
+    }
+
+    //--------------------------------------------------------
+    // Migración
+    // v12 → v13
+    //
+    // Agrega soporte para:
+    //
+    // • telefono
+    //
+    // No modifica registros existentes.
+    //--------------------------------------------------------
+
+    if (oldVersion < 13) {
+
+      //------------------------------------------------------
+      // envios_local
+      //------------------------------------------------------
+
+      await db.execute(
+        '''
+        ALTER TABLE envios_local
+        ADD COLUMN telefono TEXT
         ''',
       );
 

@@ -188,6 +188,9 @@ class EnvioLocalService {
         'codigo_postal':
             guia['codigo_postal'],
 
+        'telefono': 
+            guia['telefono'],
+
         'numero_caja':
             guia['numero_caja'],
 
@@ -417,6 +420,9 @@ Future<int> sincronizarNuevasGuias(
 
         'codigo_postal':
             guia['codigo_postal'],
+        
+        'telefono': 
+            guia['telefono'],
 
         'numero_caja':
             guia['numero_caja'],
