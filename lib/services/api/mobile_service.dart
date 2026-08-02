@@ -321,6 +321,9 @@ print(response.data);
         'id_empleado':
             movimiento['id_empleado'],
 
+        'id_operacion':
+            movimiento['id_operacion'],
+
         'id_ruta':
             movimiento['id_ruta'],
 
