@@ -13,6 +13,7 @@ import '../ruta/inicio_ruta_screen.dart';
 import '../ruta/mi_ruta_screen.dart';
 import '../../managers/sync_manager.dart';
 import '../../services/local/catalogo_local_service.dart';
+import '../../services/local/operacion_reconciliacion_local_service.dart';
 
 class ConfiguracionRutaScreen
     extends StatefulWidget {
@@ -131,7 +132,7 @@ async {
 
   print("ID UBICACION:");
   print(idUbicacion);
-  workflow =
+ workflow =
     await WorkflowManager.instance
         .obtenerOperacion();
 
@@ -139,53 +140,251 @@ if (!mounted) return;
 
 if (workflow != null) {
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  //===========================================================
+  // RECONCILIACION DE OPERACION
+  //
+  // Antes de continuar con el workflow local, consultamos
+  // el estado central de la operación.
+  //
+  // FINALIZADA:
+  //   → limpiar contexto local
+  //   → permitir iniciar una nueva operación
+  //
+  // ABIERTA:
+  //   → conservar workflow
+  //   → continuar operación normalmente
+  //===========================================================
 
-    switch (workflow!.estadoOperacion) {
+  try {
 
-        case OperationState.econ:
+    final estadoServidor =
+        await service
+            .obtenerEstadoOperacion(
+              token: token,
+              idOperacion:
+                  workflow!.idOperacion!,
+            );
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const EconScreen(),
-            ),
-          );
+    final estatusServidor =
+        estadoServidor['estatus'];
 
-          break;
+    print(
+      "==================================================",
+    );
 
-        case OperationState.econConfirmado:
+    print(
+      "RECONCILIACION CONFIGURACION RUTA",
+    );
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const InicioRutaScreen(),
-            ),
-          );
+    print(
+      "ID OPERACION LOCAL: "
+      "${workflow!.idOperacion}",
+    );
 
-          break;
-        case OperationState.enRuta:
+    print(
+      "ESTADO LOCAL: "
+      "${workflow!.estadoOperacion.name}",
+    );
 
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  const MiRutaScreen(),
-            ),
-          );
+    print(
+      "ESTADO SERVIDOR: "
+      "$estatusServidor",
+    );
 
-          break;
+    print(
+      "==================================================",
+    );
 
-        default:
 
-          setState(() {
-            loading = false;
-          });
+    //=========================================================
+    // OPERACION FINALIZADA
+    //=========================================================
 
-          break;
-      }
+    if (
+      estatusServidor == 'FINALIZADA'
+    ) {
 
-  });
+      print(
+        "RECONCILIACION → "
+        "PCC confirma operación FINALIZADA.",
+      );
+
+      print(
+        "RECONCILIACION → "
+        "Limpiando contexto local...",
+      );
+
+
+      final resultadoReconciliacion =
+          await OperacionReconciliacionLocalService
+              .instance
+              .reconciliarOperacionFinalizada(
+                workflow!.idOperacion!,
+              );
+
+
+      print(
+        "RECONCILIACION → "
+        "Operación local limpiada.",
+      );
+
+      print(
+        "MOVIMIENTOS ELIMINADOS: "
+        "${resultadoReconciliacion.movimientosEliminados}",
+      );
+
+      print(
+        "ENTREGAS ELIMINADAS: "
+        "${resultadoReconciliacion.entregasEliminadas}",
+      );
+
+      print(
+        "DEVOLUCIONES ELIMINADAS: "
+        "${resultadoReconciliacion.devolucionesEliminadas}",
+      );
+
+      print(
+        "ENVIOS ELIMINADOS: "
+        "${resultadoReconciliacion.enviosEliminados}",
+      );
+
+      print(
+        "WORKFLOW ELIMINADO: "
+        "${resultadoReconciliacion.workflowEliminado}",
+      );
+
+
+      //=======================================================
+      // IMPORTANTE
+      //
+      // El workflow local ya no existe.
+      // Por lo tanto esta pantalla debe continuar como una
+      // configuración de ruta nueva.
+      //=======================================================
+
+      workflow = null;
+
+    }
+
+
+    //=========================================================
+    // OPERACION ABIERTA
+    //=========================================================
+
+    if (
+      estatusServidor == 'ABIERTA'
+    ) {
+
+      print(
+        "RECONCILIACION → "
+        "PCC confirma operación ABIERTA.",
+      );
+
+      print(
+        "RECONCILIACION → "
+        "Se conserva el workflow local.",
+      );
+
+
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) {
+
+        switch (
+          workflow!.estadoOperacion
+        ) {
+
+          case OperationState.econ:
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const EconScreen(),
+              ),
+            );
+
+            break;
+
+
+          case OperationState.econConfirmado:
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const InicioRutaScreen(),
+              ),
+            );
+
+            break;
+
+
+          case OperationState.enRuta:
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    const MiRutaScreen(),
+              ),
+            );
+
+            break;
+
+
+          default:
+
+            setState(() {
+              loading = false;
+            });
+
+            break;
+        }
+
+      });
+
+      return;
+    }
+
+
+    //=========================================================
+    // ESTADO DESCONOCIDO
+    //=========================================================
+
+    print(
+      "RECONCILIACION → "
+      "Estado desconocido: "
+      "$estatusServidor",
+    );
+
+    setState(() {
+      loading = false;
+    });
+
+  }
+
+  catch(e) {
+
+    print(
+      "ERROR RECONCILIACION OPERACION:",
+    );
+
+    print(e);
+
+    //=========================================================
+    // IMPORTANTE
+    //
+    // Si no podemos consultar al servidor, NO eliminamos
+    // información local.
+    //
+    // Conservamos el workflow para evitar pérdida de datos.
+    //=========================================================
+
+    setState(() {
+      loading = false;
+    });
+
+  }
 
   return;
 }

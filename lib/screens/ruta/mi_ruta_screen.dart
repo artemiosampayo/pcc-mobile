@@ -45,6 +45,9 @@ import '../entrega/entrega_screen.dart';
 import '../devolucion/devolucion_screen.dart';
 import '../configuracion_ruta/configuracion_ruta_screen.dart';
 import 'detalle_guia_screen.dart';
+import 'dart:async';
+
+import '../../managers/sync_manager.dart';
 
 class MiRutaScreen extends StatefulWidget {
 
@@ -146,6 +149,9 @@ class _MiRutaScreenState
   final MobileService mobileService =
     MobileService();
 
+  final SyncManager syncManager =
+    SyncManager();
+
   //----------------------------------------------------------
   // Estado
   //----------------------------------------------------------
@@ -153,6 +159,8 @@ class _MiRutaScreenState
   WorkflowModel? workflow;
 
   List<Map<String, dynamic>> envios = [];
+
+   Timer? _syncTimer;
 
   bool loading = true;
 
@@ -172,6 +180,8 @@ class _MiRutaScreenState
     super.initState();
 
     cargarDatos();
+
+    _iniciarSincronizacionAutomatica();
 
   }
 
@@ -210,6 +220,84 @@ class _MiRutaScreenState
           false;
 
     });
+
+    // Iniciar sincronización sin bloquear la pantalla.
+    unawaited(
+      sincronizarPendientes(),
+    );
+
+  }
+
+  //----------------------------------------------------------
+  // Sincronización de pendientes
+  //----------------------------------------------------------
+
+  Future<void> sincronizarPendientes() async {
+
+    //--------------------------------------------------------
+    // Obtener sesión
+    //--------------------------------------------------------
+
+    final sesion =
+        await SessionLocalService.instance
+            .obtenerSesion();
+
+    if (sesion == null) {
+      return;
+    }
+
+    //--------------------------------------------------------
+    // Ejecutar sincronización en background
+    //
+    // NO se espera desde cargarDatos().
+    // La operación del chofer continúa normalmente.
+    //--------------------------------------------------------
+
+    try {
+
+      final resultado =
+          await syncManager.sincronizarPendientes(
+        sesion.token,
+      );
+
+      debugPrint(
+        'SYNC Mi Ruta -> '
+        'success=${resultado.success}',
+      );
+
+    } catch (e) {
+
+      //------------------------------------------------------
+      // El error NO bloquea la operación.
+      //
+      // Los registros permanecen pendientes en SQLite
+      // para el siguiente intento.
+      //------------------------------------------------------
+
+      debugPrint(
+        'SYNC Mi Ruta -> Error: $e',
+      );
+
+    }
+
+  }
+
+  //----------------------------------------------------------
+  // Sincronización automática
+  //----------------------------------------------------------
+
+  void _iniciarSincronizacionAutomatica() {
+
+    _syncTimer = Timer.periodic(
+      const Duration(seconds: 30),
+      (_) {
+
+        unawaited(
+          sincronizarPendientes(),
+        );
+
+      },
+    );
 
   }
 
@@ -1150,6 +1238,18 @@ debugPrint("Resultado: $entregaRealizada");
     );
 
   }
+
+  //----------------------------------------------------------
+  // Liberar recursos
+  //----------------------------------------------------------
+
+  @override
+  void dispose() {
+
+    _syncTimer?.cancel();
+
+    super.dispose();
+}
 
 }
 

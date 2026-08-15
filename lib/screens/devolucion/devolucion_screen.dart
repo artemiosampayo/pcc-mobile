@@ -39,8 +39,7 @@ import '../../core/workflow/workflow_manager.dart';
 
 import '../../services/device/location_service.dart';
 import '../../services/local/devolucion_local_service.dart';
-import '../../services/sync/evidencia_sync_service.dart';
-import '../../services/sync/movimiento_sync_service.dart';
+
 
 import '../../widgets/loading_dialog.dart';
 
@@ -49,6 +48,7 @@ import '../../services/local/envio_local_service.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../services/local/catalogo_devolucion_local_service.dart';
+import '../../core/constants/app_constants.dart';
 
 class DevolucionScreen extends StatefulWidget {
 
@@ -149,7 +149,8 @@ class _DevolucionScreenState
     final XFile? foto =
         await imagePicker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 80,
+      maxWidth: AppConstants.photoMaxWidth,
+      imageQuality: AppConstants.photoImageQuality,
     );
 
     if (foto == null) {
@@ -316,26 +317,6 @@ class _DevolucionScreenState
           if (!mounted) {
             return;
           }
-
-          
-
-          //------------------------------------------------------
-          // Sincronizar movimientos
-          //------------------------------------------------------
-
-          await MovimientoSyncService.instance
-              .sincronizarPendientes(
-            token: session.token,
-          );
-
-          //------------------------------------------------------
-          // Sincronizar evidencias
-          //------------------------------------------------------
-
-          await EvidenciaSyncService.instance
-              .sincronizarPendientes(
-            token: session.token,
-          );
 
           //------------------------------------------------------
           // Regresar a Mi Ruta

@@ -38,16 +38,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
 import '../../core/workflow/workflow_manager.dart';
-import '../../core/authentication/authentication_manager.dart';
 
 import '../../services/local/entrega_local_service.dart';
-import '../../services/sync/movimiento_sync_service.dart';
-import '../../services/sync/evidencia_sync_service.dart';
 
 import '../../services/device/location_service.dart';
 import '../../widgets/loading_dialog.dart';
 import '../../services/local/envio_local_service.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/constants/app_constants.dart';
 
 
 class EntregaScreen extends StatefulWidget {
@@ -111,7 +109,8 @@ class _EntregaScreenState
     final XFile? foto =
         await imagePicker.pickImage(
       source: ImageSource.camera,
-      imageQuality: 80,
+      maxWidth: AppConstants.photoMaxWidth,
+      imageQuality: AppConstants.photoImageQuality,
     );
 
     if (foto == null) {
@@ -338,45 +337,15 @@ Future<void> realizarEntrega() async {
 final enviosActualizados =
     await EnvioLocalService()
         .obtenerEnvios();
+        debugPrint("=================================");
+      debugPrint("ESTADO LOCAL DESPUÉS DE LA ENTREGA");
 
-debugPrint("=================================");
-debugPrint("ESTADO LOCAL DESPUÉS DE LA ENTREGA");
-
-for (final envio in enviosActualizados) {
-  debugPrint(
-    '${envio['numero_guia']} -> ${envio['estatus_local']}',
-  );
-}
-      //------------------------------------------------------
-      // Obtener sesión actual
-      //------------------------------------------------------
-
-      final sesion =
-          await AuthenticationManager.instance
-              .obtenerSesion();
-
-      if (sesion == null) {
-        throw Exception(
-          'No existe una sesión activa.',
+      for (final envio in enviosActualizados) {
+        debugPrint(
+          '${envio['numero_guia']} -> ${envio['estatus_local']}',
         );
       }
 
-      //------------------------------------------------------
-      // Sincronizar movimientos pendientes
-      //------------------------------------------------------
-
-      await MovimientoSyncService.instance
-          .sincronizarPendientes(
-        token: sesion.token,
-      );
-      //------------------------------------------------------
-      // Sincronizar evidencias pendientes
-      //------------------------------------------------------
-
-      await EvidenciaSyncService.instance
-          .sincronizarPendientes(
-        token: sesion.token,
-      );
 
       //------------------------------------------------------
       // Log temporal de diagnóstico

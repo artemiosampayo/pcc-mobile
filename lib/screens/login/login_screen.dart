@@ -8,6 +8,8 @@ import '../configuracion_ruta/configuracion_ruta_screen.dart';
 import '../../widgets/pcc_logo.dart';
 import '../../core/authentication/authentication_manager.dart';
 import '../../models/session_model.dart';
+
+
 class LoginScreen extends StatefulWidget {
 
   const LoginScreen({
@@ -102,21 +104,21 @@ class _LoginScreenState
     fechaLogin: DateTime.now().toIso8601String(),
   ),
 );
-      if(!mounted) return;
 
-      Navigator.pushReplacement(
 
-        context,
+//=============================================================
+// CONTINUAR FLUJO NORMAL
+//=============================================================
 
-        MaterialPageRoute(
+if(!mounted) return;
 
-          builder: (_) =>
-
-          const ConfiguracionRutaScreen(),
-
-        ),
-
-      );
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (_) =>
+        const ConfiguracionRutaScreen(),
+  ),
+);
 
     }
     catch(e){
@@ -218,25 +220,7 @@ Widget build(
 
                     const SizedBox(
                       height: 20,
-                    ),
-
-                    const Text(
-
-                      'Paquetería y Carga Consolidada',
-
-                      textAlign:
-                          TextAlign.center,
-
-                      style: TextStyle(
-
-                        fontSize: 18,
-
-                        fontWeight:
-                            FontWeight.w600,
-
-                      ),
-
-                    ),
+                    ),                   
 
                     const SizedBox(
                       height: 35,

@@ -280,7 +280,127 @@ print(response.data);
   return data['data'];
 
 }
+//----------------------------------------------------------
+// OBTENER ESTADO DE OPERACION
+//
+// Consulta el estado central de una operación específica.
+//
+// IMPORTANTE:
+// Esta consulta se realiza únicamente por id_operacion.
+// NO depende del operador que actualmente tenga iniciada
+// la sesión en el dispositivo.
+//
+// Se utiliza para reconciliación de operaciones locales.
+//----------------------------------------------------------
 
+Future<Map<String, dynamic>> obtenerEstadoOperacion({
+
+  required String token,
+
+  required int idOperacion,
+
+}) async {
+
+  try {
+
+    final response =
+        await dio.get(
+
+      '${AppConstants.apiUrl}'
+      '/api/mobile/operacion/$idOperacion/estado',
+
+      options: Options(
+
+        headers: {
+
+          'Authorization':
+              'Bearer $token',
+
+        },
+
+        responseType:
+            ResponseType.plain,
+
+      ),
+
+    );
+
+    print(
+      "RESPUESTA ESTADO OPERACION:",
+    );
+
+    print(
+      response.data,
+    );
+
+    dynamic data =
+        response.data;
+
+    if(data is String){
+
+      data =
+          jsonDecode(data);
+
+    }
+
+    if(
+      data is Map &&
+      data['success'] != true
+    ){
+
+      throw Exception(
+
+        data['error']
+        ??
+        'Error obteniendo estado de operación',
+
+      );
+
+    }
+
+    return
+        Map<String, dynamic>
+            .from(data);
+
+  } on DioException catch (e) {
+
+    print(
+      "==================================================",
+    );
+
+    print(
+      "ERROR CONSULTANDO ESTADO DE OPERACION",
+    );
+
+    print(
+      "STATUS CODE: "
+      "${e.response?.statusCode}",
+    );
+
+    print(
+      "URL: "
+      "${e.requestOptions.uri}",
+    );
+
+    print(
+      "RESPONSE DATA: "
+      "${e.response?.data}",
+    );
+
+    print(
+      "MESSAGE: "
+      "${e.message}",
+    );
+
+    print(
+      "==================================================",
+    );
+
+    rethrow;
+
+  }
+
+}
 //----------------------------------------------------------
 // REGISTRAR MOVIMIENTO DE ENVÍO
 //
